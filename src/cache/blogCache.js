@@ -4,17 +4,18 @@
  * Implements cache-aside pattern with Redis
  */
 
-const { client } = require('./redisClient');
-const createLogger = require('./logger');
+const { client } = require('../utils/redisClient');
+const createLogger = require('../utils/logger');
+const { CACHE_TTL } = require('./cacheConfig');
 
 const logger = createLogger('BLOG_CACHE');
 
 // Cache configuration
 const CACHE_CONFIG = {
-  // TTL in seconds
-  BLOG_TTL: 3600, // 1 hour - individual blogs
-  BLOG_LIST_TTL: 1800, // 30 minutes - paginated lists
-  BLOG_COUNT_TTL: 3600, // 1 hour - total count
+  // TTL in seconds (from unified config)
+  BLOG_TTL: CACHE_TTL.ITEM,
+  BLOG_LIST_TTL: CACHE_TTL.LIST,
+  BLOG_COUNT_TTL: CACHE_TTL.COUNT,
   // Key prefixes
   PREFIX: {
     BLOG: 'blog',

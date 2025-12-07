@@ -13,7 +13,7 @@ const {
   cacheBlogList,
   getCachedBlogCount,
   cacheBlogCount,
-} = require('../../utils/blogCache');
+} = require('../../cache/blogCache');
 const {
   buildWhereClause,
   buildFilters,

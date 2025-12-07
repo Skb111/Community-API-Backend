@@ -10,7 +10,7 @@ const {
   ForbiddenError,
   InternalServerError,
 } = require('../../utils/customErrors');
-const { invalidateAllBlogCaches, invalidateBlogCache } = require('../../utils/blogCache');
+const { invalidateAllBlogCaches, invalidateBlogCache } = require('../../cache/blogCache');
 const { checkBlogPermission, findBlogWithAuthor, reloadBlogWithAuthor } = require('./blogHelpers');
 const { uploadBlogCoverImage } = require('../../utils/imageUploader');
 

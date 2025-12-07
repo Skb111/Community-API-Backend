@@ -4,23 +4,24 @@
  * Implements cache-aside pattern with Redis
  */
 
-const { client } = require('./redisClient');
-const createLogger = require('./logger');
+const { client } = require('../utils/redisClient');
+const createLogger = require('../utils/logger');
+const { CACHE_TTL } = require('./cacheConfig');
 
 const logger = createLogger('SKILL_CACHE');
 
 // Cache configuration
 const CACHE_CONFIG = {
-  // TTL in seconds
-  SKILL_TTL: 3600, // 1 hour - individual skills
-  SKILL_LIST_TTL: 1800, // 30 minutes - paginated lists
-  SKILL_COUNT_TTL: 3600, // 1 hour - total count
+  // TTL in seconds (from unified config)
+  SKILL_TTL: CACHE_TTL.ITEM,
+  SKILL_LIST_TTL: CACHE_TTL.LIST,
+  SKILL_COUNT_TTL: CACHE_TTL.COUNT,
   // Key prefixes
   PREFIX: {
     SKILL: 'skill',
     SKILL_LIST: 'skills:list',
     SKILL_COUNT: 'skills:count',
-    SKILL_NAME: 'skill:name', // For name lookups
+    SKILL_NAME: 'skill:name',
   },
 };
 
@@ -239,7 +240,7 @@ const cacheSkillNameLookup = async (name, skillId) => {
   try {
     const key = getSkillNameKey(name);
     // Cache for shorter time since this is for validation
-    await client.setex(key, 300, skillId || ''); // 5 minutes
+    await client.setex(key, CACHE_TTL.NAME_LOOKUP, skillId || '');
     logger.info(`Cached skill name lookup: ${name}`);
   } catch (error) {
     logger.warn(`Error caching skill name lookup: ${error.message}`);

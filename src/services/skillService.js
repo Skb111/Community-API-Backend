@@ -19,7 +19,7 @@ const {
   invalidateSkillNameCache,
   getCachedSkillNameLookup,
   cacheSkillNameLookup,
-} = require('../utils/skillCache');
+} = require('../cache/skillCache');
 
 const logger = createLogger('SKILL_SERVICE');
 

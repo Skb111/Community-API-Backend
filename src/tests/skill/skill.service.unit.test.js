@@ -25,7 +25,7 @@ const {
   invalidateAllSkillCaches,
   invalidateSkillCache,
   invalidateSkillNameCache,
-} = require('../../utils/skillCache');
+} = require('../../cache/skillCache');
 
 // 🧠 Mock dependencies
 jest.mock('../../models', () => ({
@@ -41,7 +41,7 @@ jest.mock('../../models', () => ({
   },
 }));
 
-jest.mock('../../utils/skillCache', () => ({
+jest.mock('../../cache/skillCache', () => ({
   getCachedSkillList: jest.fn(),
   getCachedSkillCount: jest.fn(),
   getCachedSkill: jest.fn(),

@@ -7,7 +7,7 @@
 const createLogger = require('../../utils/logger');
 const { ValidationError, NotFoundError, InternalServerError } = require('../../utils/customErrors');
 const { Blog, User } = require('../../models');
-const { invalidateAllBlogCaches } = require('../../utils/blogCache');
+const { invalidateAllBlogCaches } = require('../../cache/blogCache');
 const { reloadBlogWithFullAuthor } = require('./blogHelpers');
 const { uploadBlogCoverImage } = require('../../utils/imageUploader');
 
