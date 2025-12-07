@@ -141,12 +141,14 @@ describe('POST /api/v1/auth/** (Testcontainers)', () => {
       expect(otpStore[testUserEmail]).toHaveLength(6);
     });
 
-    it('should return 200 even if user email does not exist', async () => {
+    it('should return 404 when user email does not exist', async () => {
       const res = await request(app)
         .post('/api/v1/auth/forgot-password')
         .send({ email: 'nonexistent@example.com' });
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message[0]).toBe('User with this email does not exist');
     });
 
     it('should return 400 if email is missing', async () => {

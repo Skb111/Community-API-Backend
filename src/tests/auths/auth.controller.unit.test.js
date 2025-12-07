@@ -190,7 +190,7 @@ describe('AuthController', () => {
 
   // ---------------- FORGOT PASSWORD ----------------
   describe('forgotPassword', () => {
-    it('should send OTP and return 200 even if email does not exist', async () => {
+    it('should throw NotFoundError when user does not exist', async () => {
       const req = { body: { email: 'john@example.com' } };
       const res = mockResponse();
 
@@ -200,18 +200,17 @@ describe('AuthController', () => {
       });
       authService.findUserByEmail.mockResolvedValue(null); // user not found
 
-      await authController.forgotPassword(req, res);
+      await expect(authController.forgotPassword(req, res)).rejects.toThrow(
+        'User with this email does not exist'
+      );
 
       expect(mockForgotPasswordValidate).toHaveBeenCalledWith(
         { email: 'john@example.com' },
         { abortEarly: false }
       );
       expect(authService.findUserByEmail).toHaveBeenCalledWith('john@example.com');
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({
-        success: true,
-        message: 'An OTP has been sent to your email successfully',
-      });
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
     });
 
     it('should generate and send OTP when user exists', async () => {

@@ -16,7 +16,7 @@ const {
 const { sendOtpEmail } = require('../services/emailService');
 const { setAuthCookies, clearAuthCookies } = require('../utils/cookies');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { ValidationError, UnauthorizedError } = require('../utils/customErrors');
+const { ValidationError, UnauthorizedError, NotFoundError } = require('../utils/customErrors');
 const createLogger = require('../utils/logger');
 const cookiesConfig = require('../utils/authCookieConfig');
 
@@ -30,9 +30,7 @@ class AuthController {
 
     if (error) {
       const errorMessages = error.details.map((detail) => detail.message);
-      logger.error(
-        `validation error occurred when signing up reason=${errorMessages.join(', ')}`
-      );
+      logger.error(`validation error occurred when signing up reason=${errorMessages.join(', ')}`);
       throw new ValidationError('Validation failed', errorMessages);
     }
 
@@ -53,9 +51,7 @@ class AuthController {
 
     if (error) {
       const errorMessages = error.details.map((detail) => detail.message);
-      logger.error(
-        `validation error occurred when signing in reason=${errorMessages.join(', ')}`
-      );
+      logger.error(`validation error occurred when signing in reason=${errorMessages.join(', ')}`);
       throw new ValidationError('Validation failed', errorMessages);
     }
 
@@ -102,14 +98,16 @@ class AuthController {
 
     const email = value.email.toLowerCase();
 
-    // NB: we do not reveal whether an email exists
+    // Check if user exists
     const user = await authService.findUserByEmail(email);
-    if (user) {
-      // generate & save OTP, then send email
-      const otp = generateOtp();
-      await saveOtpForEmail(email, otp);
-      await sendOtpEmail(email, otp);
+    if (!user) {
+      throw new NotFoundError('User with this email does not exist');
     }
+
+    // Generate & save OTP, then send email
+    const otp = generateOtp();
+    await saveOtpForEmail(email, otp);
+    await sendOtpEmail(email, otp);
 
     logger.info(`Forgot password requested for ${email}`);
     return res.status(200).json({
