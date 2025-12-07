@@ -11,8 +11,7 @@ class RoleController {
   async assignRole(req, res) {
     try {
       // Validate request body
-      const { _value, errorResponse } = Validator.validate(assignRoleSchema, req.body);
-      if (errorResponse) return res.status(400).json(errorResponse);
+      const { _value } = Validator.validate(assignRoleSchema, req.body);
 
       // Get caller ID from authenticated user
       const callerId = req.user.id;

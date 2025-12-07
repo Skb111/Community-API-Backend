@@ -70,9 +70,18 @@ const resetPasswordSchema = Joi.object({
 
 // Here i define validate schemas for updating user profile
 const updateProfileSchema = Joi.object({
-  fullname: Joi.string().min(3).optional(),
-  email: Joi.string().email().optional(),
-}).min(1); // At least one field must be provided
+  fullname: Joi.string().min(3).optional().messages({
+    'string.empty': 'Fullname cannot be empty',
+    'string.min': 'Fullname must be at least 3 characters long',
+  }),
+  email: Joi.string().email().optional().messages({
+    'string.email': 'Email must be a valid email address',
+  }),
+})
+  .min(1)
+  .messages({
+    'object.min': 'At least one field must be provided',
+  });
 
 const assignRoleSchema = Joi.object({
   userId: Joi.string().required().messages({
@@ -207,6 +216,93 @@ const batchCreateSkillsSchema = Joi.object({
     }),
 });
 
+// Blog validation schemas
+const createBlogSchema = Joi.object({
+  title: Joi.string().min(1).max(255).trim().required().messages({
+    'string.empty': 'Title is required',
+    'string.min': 'Title cannot be empty',
+    'string.max': 'Title must not exceed 255 characters',
+    'any.required': 'Title is required',
+  }),
+  description: Joi.string().max(1000).trim().allow('', null).optional().messages({
+    'string.max': 'Description must not exceed 1000 characters',
+  }),
+  body: Joi.string().min(1).trim().required().messages({
+    'string.empty': 'Body is required',
+    'string.min': 'Body cannot be empty',
+    'any.required': 'Body is required',
+  }),
+  coverImage: Joi.string().trim().allow('', null).optional().messages({
+    'string.base': 'Cover image must be a string',
+  }),
+  topic: Joi.string().max(100).trim().allow('', null).optional().messages({
+    'string.max': 'Topic must not exceed 100 characters',
+  }),
+  featured: Joi.boolean().default(false).optional().messages({
+    'boolean.base': 'Featured must be a boolean',
+  }),
+});
+
+const updateBlogSchema = Joi.object({
+  title: Joi.string().min(1).max(255).trim().optional().messages({
+    'string.empty': 'Title cannot be empty',
+    'string.min': 'Title cannot be empty',
+    'string.max': 'Title must not exceed 255 characters',
+  }),
+  description: Joi.string().max(1000).trim().allow(null).optional().messages({
+    'string.empty': 'Description cannot be empty',
+    'string.max': 'Description must not exceed 1000 characters',
+  }),
+  body: Joi.string().min(1).trim().optional().messages({
+    'string.empty': 'Body cannot be empty',
+    'string.min': 'Body cannot be empty',
+  }),
+  coverImage: Joi.string().trim().allow('', null).optional().messages({
+    'string.base': 'Cover image must be a string',
+  }),
+  topic: Joi.string().max(100).trim().allow('', null).optional().messages({
+    'string.max': 'Topic must not exceed 100 characters',
+  }),
+  featured: Joi.boolean().optional().messages({
+    'boolean.base': 'Featured must be a boolean',
+  }),
+})
+  .min(1)
+  .messages({
+    'object.min': 'At least one field must be provided',
+  });
+
+const blogQuerySchema = Joi.object({
+  page: Joi.number().integer().min(1).default(1).messages({
+    'number.base': 'Page must be a number',
+    'number.integer': 'Page must be an integer',
+    'number.min': 'Page must be at least 1',
+  }),
+  pageSize: Joi.number().integer().min(1).max(100).default(10).messages({
+    'number.base': 'pageSize must be a number',
+    'number.integer': 'pageSize must be an integer',
+    'number.min': 'pageSize must be at least 1',
+    'number.max': 'pageSize must not exceed 100',
+  }),
+  featured: Joi.boolean().optional().messages({
+    'boolean.base': 'Featured must be a boolean',
+  }),
+  topic: Joi.string().trim().optional().messages({
+    'string.base': 'Topic must be a string',
+  }),
+  createdBy: Joi.string().uuid().optional().messages({
+    'string.guid': 'createdBy must be a valid UUID',
+  }),
+});
+
+const blogIdParamSchema = Joi.object({
+  id: Joi.string().uuid().required().messages({
+    'string.empty': 'Blog ID is required',
+    'string.guid': 'Blog ID must be a valid UUID',
+    'any.required': 'Blog ID is required',
+  }),
+});
+
 module.exports = {
   signupSchema,
   signinSchema,
@@ -222,4 +318,8 @@ module.exports = {
   updateSkillSchema,
   addSkillToUserSchema,
   batchCreateSkillsSchema,
+  createBlogSchema,
+  updateBlogSchema,
+  blogQuerySchema,
+  blogIdParamSchema,
 };

@@ -12,13 +12,8 @@ class Validator {
     const { error, value } = schema.validate(data, { abortEarly: false });
 
     if (error) {
-      return {
-        errorResponse: {
-          success: false,
-          message: 'Validation failed',
-          errors: error.details.map((err) => err.message),
-        },
-      };
+      const errorMessages = error.details.map((err) => err.message);
+      throw new customErrors.ValidationError('Validation failed', errorMessages);
     }
 
     return { _value: value };

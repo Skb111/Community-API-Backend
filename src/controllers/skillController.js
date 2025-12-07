@@ -27,9 +27,13 @@ const logger = createLogger('SKILL_CONTROLLER');
  */
 const getAllSkillsController = asyncHandler(async (req, res) => {
   // Validate query parameters
-  const { error, value } = paginationQuerySchema.validate(req.query);
+  const { error, value } = paginationQuerySchema.validate(req.query, { abortEarly: false });
   if (error) {
-    throw new ValidationError(error.details[0].message);
+    const errorMessages = error.details.map((detail) => detail.message);
+    logger.error(
+      `validation error occurred when retrieving skills reason=${errorMessages.join(', ')}`
+    );
+    throw new ValidationError('Validation failed', errorMessages);
   }
 
   const { page, pageSize } = value;
@@ -70,10 +74,7 @@ const getSkillByIdController = asyncHandler(async (req, res) => {
  */
 const createSkillController = asyncHandler(async (req, res) => {
   // Validate request body
-  const { _value, errorResponse } = Validator.validate(createSkillSchema, req.body);
-  if (errorResponse) {
-    throw new ValidationError(errorResponse.message || 'Validation failed');
-  }
+  const { _value } = Validator.validate(createSkillSchema, req.body);
 
   // Set creator to current user (admin/root creating the skill)
   const createdBy = req.user?.id || null;
@@ -95,10 +96,7 @@ const createSkillController = asyncHandler(async (req, res) => {
  */
 const batchCreateSkillsController = asyncHandler(async (req, res) => {
   // Validate request body
-  const { _value, errorResponse } = Validator.validate(batchCreateSkillsSchema, req.body);
-  if (errorResponse) {
-    throw new ValidationError(errorResponse.message || 'Validation failed');
-  }
+  const { _value } = Validator.validate(batchCreateSkillsSchema, req.body);
 
   // Set creator to current user (admin/root creating the skills)
   const createdBy = req.user?.id || null;
@@ -126,10 +124,7 @@ const updateSkillController = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   // Validate request body
-  const { _value, errorResponse } = Validator.validate(updateSkillSchema, req.body);
-  if (errorResponse) {
-    throw new ValidationError(errorResponse.message || 'Validation failed');
-  }
+  const { _value } = Validator.validate(updateSkillSchema, req.body);
 
   const skill = await updateSkill(id, _value);
 

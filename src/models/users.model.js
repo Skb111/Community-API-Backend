@@ -26,6 +26,13 @@ module.exports = (sequelize, DataTypes) => {
         otherKey: 'skillId',
         as: 'skills',
       });
+
+      // Blogs created by this user
+      User.hasMany(models.Blog, {
+        foreignKey: 'createdBy',
+        as: 'blogs',
+        onDelete: 'CASCADE',
+      });
     }
 
     /**

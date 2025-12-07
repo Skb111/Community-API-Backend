@@ -22,13 +22,14 @@ const getMyPreferences = asyncHandler(async (req, res) => {
  */
 const updateMyPreferences = asyncHandler(async (req, res) => {
   const body = req.body || {};
-  const { error, value } = preferencesUpdateSchema.validate(body);
+  const { error, value } = preferencesUpdateSchema.validate(body, { abortEarly: false });
 
   if (error) {
+    const errorMessages = error.details.map((detail) => detail.message);
     logger.error(
-      `validation error occurred when updating user preferences reason=${error.message}`
+      `validation error occurred when updating user preferences reason=${errorMessages.join(', ')}`
     );
-    throw new ValidationError(error.details[0].message);
+    throw new ValidationError('Validation failed', errorMessages);
   }
 
   const userId = req.user.id;

@@ -14,9 +14,14 @@ class AppError extends Error {
 }
 
 class ValidationError extends AppError {
-  constructor(message = 'Validation failed') {
+  constructor(message = 'Validation failed', errors = []) {
     super(message, 400);
     this.name = 'ValidationError';
+    this.errors = Array.isArray(errors) ? errors : [message];
+    // If errors array is provided, use first error as main message if message is default
+    if (errors.length > 0 && message === 'Validation failed') {
+      this.message = errors[0];
+    }
   }
 }
 
