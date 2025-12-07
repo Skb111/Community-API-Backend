@@ -224,13 +224,11 @@ const createBlogSchema = Joi.object({
     'string.max': 'Title must not exceed 255 characters',
     'any.required': 'Title is required',
   }),
-  description: Joi.string().max(1000).trim().allow('', null).optional().messages({
+  description: Joi.string().min(1).max(1000).trim().required().messages({
+    'string.empty': 'Description is required',
+    'string.min': 'Description cannot be empty',
     'string.max': 'Description must not exceed 1000 characters',
-  }),
-  body: Joi.string().min(1).trim().required().messages({
-    'string.empty': 'Body is required',
-    'string.min': 'Body cannot be empty',
-    'any.required': 'Body is required',
+    'any.required': 'Description is required',
   }),
   coverImage: Joi.string().trim().allow('', null).optional().messages({
     'string.base': 'Cover image must be a string',
@@ -249,13 +247,10 @@ const updateBlogSchema = Joi.object({
     'string.min': 'Title cannot be empty',
     'string.max': 'Title must not exceed 255 characters',
   }),
-  description: Joi.string().max(1000).trim().allow(null).optional().messages({
+  description: Joi.string().min(1).max(1000).trim().optional().messages({
     'string.empty': 'Description cannot be empty',
+    'string.min': 'Description cannot be empty',
     'string.max': 'Description must not exceed 1000 characters',
-  }),
-  body: Joi.string().min(1).trim().optional().messages({
-    'string.empty': 'Body cannot be empty',
-    'string.min': 'Body cannot be empty',
   }),
   coverImage: Joi.string().trim().allow('', null).optional().messages({
     'string.base': 'Cover image must be a string',

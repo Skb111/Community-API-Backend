@@ -54,10 +54,7 @@ const updateBlog = async (blogId, updates, userId, isAdmin = false) => {
       blog.title = updates.title;
     }
     if (updates.description !== undefined) {
-      blog.description = updates.description || null;
-    }
-    if (updates.body !== undefined) {
-      blog.body = updates.body;
+      blog.description = updates.description;
     }
     if (updates.coverImage !== undefined) {
       blog.coverImage = updates.coverImage || null;

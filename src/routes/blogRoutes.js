@@ -7,7 +7,7 @@ const {
   deleteBlogPost,
   updateCoverImage,
 } = require('../controllers/blogController');
-const { authenticateJWT } = require('../middleware/authMiddleware');
+const { requireAdmin } = require('../middleware/authMiddleware');
 const { handleMulterUpload } = require('../middleware/uploadMiddleware');
 
 const router = express.Router();
@@ -32,7 +32,7 @@ const router = express.Router();
  *       type: object
  *       required:
  *         - title
- *         - body
+ *         - description
  *       properties:
  *         id:
  *           type: string
@@ -45,13 +45,8 @@ const router = express.Router();
  *           example: "Getting Started with Node.js"
  *         description:
  *           type: string
- *           description: Short description or excerpt of the blog post
- *           nullable: true
- *           example: "Learn the basics of Node.js development"
- *         body:
- *           type: string
- *           description: Full content of the blog post
- *           example: "Node.js is a powerful JavaScript runtime..."
+ *           description: Full content/description of the blog post
+ *           example: "Node.js is a powerful JavaScript runtime built on Chrome's V8 JavaScript engine. Learn the basics of Node.js development..."
  *         coverImage:
  *           type: string
  *           format: uri
@@ -95,7 +90,7 @@ const router = express.Router();
  *       type: object
  *       required:
  *         - title
- *         - body
+ *         - description
  *       properties:
  *         title:
  *           type: string
@@ -104,12 +99,9 @@ const router = express.Router();
  *           example: "Getting Started with Node.js"
  *         description:
  *           type: string
- *           nullable: true
- *           example: "Learn the basics of Node.js development"
- *         body:
- *           type: string
  *           minLength: 1
- *           example: "Node.js is a powerful JavaScript runtime..."
+ *           maxLength: 1000
+ *           example: "Node.js is a powerful JavaScript runtime built on Chrome's V8 JavaScript engine. Learn the basics of Node.js development..."
  *         coverImage:
  *           type: string
  *           format: uri
@@ -133,12 +125,9 @@ const router = express.Router();
  *           example: "Updated Title"
  *         description:
  *           type: string
- *           nullable: true
- *           example: "Updated description"
- *         body:
- *           type: string
  *           minLength: 1
- *           example: "Updated body content..."
+ *           maxLength: 1000
+ *           example: "Updated description content..."
  *         coverImage:
  *           type: string
  *           format: uri
@@ -159,18 +148,18 @@ const router = express.Router();
  *   post:
  *     summary: Create a new blog post
  *     description: |
- *       Create a new blog post with optional cover image upload. 
- *       
+ *       Create a new blog post with optional cover image upload.
+ *
  *       **Two ways to provide cover image:**
  *       1. **File Upload (multipart/form-data)**: Upload an image file directly. The file will be stored in MinIO and the URL will be automatically generated.
  *       2. **URL String (application/json)**: Provide an existing image URL as a string.
- *       
+ *
  *       **File Requirements:**
  *       - Supported formats: JPEG, JPG, PNG
  *       - Maximum file size: 5MB
  *       - If a file is uploaded, it takes priority over any URL provided in the body.
- *       
- *       Requires authentication.
+ *
+ *       Requires admin privileges.
  *     tags: [Blog]
  *     security:
  *       - cookieAuth: []
@@ -182,8 +171,7 @@ const router = express.Router();
  *             $ref: '#/components/schemas/BlogCreate'
  *           example:
  *             title: "Getting Started with Node.js"
- *             description: "Learn the basics of Node.js development"
- *             body: "Node.js is a powerful JavaScript runtime built on Chrome's V8 JavaScript engine..."
+ *             description: "Node.js is a powerful JavaScript runtime built on Chrome's V8 JavaScript engine. Learn the basics of Node.js development..."
  *             coverImage: "https://example.com/images/blog-cover.jpg"
  *             topic: "Technology"
  *             featured: false
@@ -192,7 +180,7 @@ const router = express.Router();
  *             type: object
  *             required:
  *               - title
- *               - body
+ *               - description
  *             properties:
  *               title:
  *                 type: string
@@ -202,19 +190,15 @@ const router = express.Router();
  *                 example: "Getting Started with Node.js"
  *               description:
  *                 type: string
- *                 nullable: true
- *                 description: Short description or excerpt of the blog post
- *                 example: "Learn the basics of Node.js development"
- *               body:
- *                 type: string
  *                 minLength: 1
- *                 description: Full content of the blog post
- *                 example: "Node.js is a powerful JavaScript runtime built on Chrome's V8 JavaScript engine..."
+ *                 maxLength: 1000
+ *                 description: Full content/description of the blog post
+ *                 example: "Node.js is a powerful JavaScript runtime built on Chrome's V8 JavaScript engine. Learn the basics of Node.js development..."
  *               coverImage:
  *                 type: string
  *                 format: binary
  *                 description: |
- *                   Cover image file (JPEG or PNG, max 5MB). 
+ *                   Cover image file (JPEG or PNG, max 5MB).
  *                   **Optional** - If provided, the file will be uploaded to MinIO and the URL will be automatically saved.
  *                   If not provided, you can set coverImage as a URL string in a separate JSON request.
  *               topic:
@@ -233,7 +217,7 @@ const router = express.Router();
  *     responses:
  *       201:
  *         description: |
- *           Blog post created successfully. 
+ *           Blog post created successfully.
  *           If a cover image file was uploaded, the `coverImage` field in the response will contain the MinIO URL where the image was stored.
  *         content:
  *           application/json:
@@ -254,8 +238,7 @@ const router = express.Router();
  *               blog:
  *                 id: "123e4567-e89b-12d3-a456-426614174000"
  *                 title: "Getting Started with Node.js"
- *                 description: "Learn the basics of Node.js development"
- *                 body: "Node.js is a powerful JavaScript runtime..."
+ *                 description: "Node.js is a powerful JavaScript runtime built on Chrome's V8 JavaScript engine. Learn the basics of Node.js development..."
  *                 coverImage: "devbyte-profile-pictures/blog_cover_123e4567_1234567890.jpg"
  *                 topic: "Technology"
  *                 featured: false
@@ -319,7 +302,7 @@ const router = express.Router();
  */
 router.post(
   '/',
-  authenticateJWT,
+  requireAdmin,
   handleMulterUpload('coverImage'), // Optional file upload
   createBlogPost
 );
@@ -483,7 +466,7 @@ router.get('/:id', getBlogPost);
  * /api/v1/blogs/{id}:
  *   patch:
  *     summary: Update a blog post
- *     description: Update a blog post. Only the author or an admin can update. Requires authentication.
+ *     description: Update a blog post. Only the author or an admin can update. Requires admin privileges.
  *     tags: [Blog]
  *     security:
  *       - cookieAuth: []
@@ -503,8 +486,7 @@ router.get('/:id', getBlogPost);
  *             $ref: '#/components/schemas/BlogUpdate'
  *           example:
  *             title: "Updated Title"
- *             description: "Updated description"
- *             body: "Updated body content..."
+ *             description: "Updated description content..."
  *     responses:
  *       200:
  *         description: Blog post updated successfully
@@ -535,7 +517,7 @@ router.get('/:id', getBlogPost);
  *               multipleErrors:
  *                 value:
  *                   success: false
- *                   message: ["Title cannot be empty", "Body cannot be empty"]
+ *                   message: ["Title cannot be empty", "Description cannot be empty"]
  *       401:
  *         description: Unauthorized - Authentication required
  *         content:
@@ -589,14 +571,14 @@ router.get('/:id', getBlogPost);
  *                   type: string
  *                   example: Failed to update blog
  */
-router.patch('/:id', authenticateJWT, updateBlogPost);
+router.patch('/:id', requireAdmin, updateBlogPost);
 
 /**
  * @swagger
  * /api/v1/blogs/{id}:
  *   delete:
  *     summary: Delete a blog post
- *     description: Delete a blog post. Only the author or an admin can delete. Requires authentication.
+ *     description: Delete a blog post. Only the author or an admin can delete. Requires admin privileges.
  *     tags: [Blog]
  *     security:
  *       - cookieAuth: []
@@ -675,14 +657,14 @@ router.patch('/:id', authenticateJWT, updateBlogPost);
  *                   type: string
  *                   example: Failed to delete blog
  */
-router.delete('/:id', authenticateJWT, deleteBlogPost);
+router.delete('/:id', requireAdmin, deleteBlogPost);
 
 /**
  * @swagger
  * /api/v1/blogs/{id}/cover-image:
  *   patch:
  *     summary: Update blog cover image
- *     description: Upload or update the cover image for a blog post. Only the author or an admin can update. Requires authentication.
+ *     description: Upload or update the cover image for a blog post. Only the author or an admin can update. Requires admin privileges.
  *     tags: [Blog]
  *     security:
  *       - cookieAuth: []
@@ -791,11 +773,6 @@ router.delete('/:id', authenticateJWT, deleteBlogPost);
  *                   type: string
  *                   example: Failed to update cover image
  */
-router.patch(
-  '/:id/cover-image',
-  authenticateJWT,
-  handleMulterUpload('coverImage'),
-  updateCoverImage
-);
+router.patch('/:id/cover-image', requireAdmin, handleMulterUpload('coverImage'), updateCoverImage);
 
 module.exports = router;

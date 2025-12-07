@@ -33,7 +33,7 @@ const uploadCoverImage = async (blog, fileBuffer, originalFileName, mimeType = '
 
 /**
  * Create a new blog post
- * @param {Object} blogData - Blog data (title, description, body, coverImage, topic, featured)
+ * @param {Object} blogData - Blog data (title, description, coverImage, topic, featured)
  * @param {string} userId - ID of the user creating the blog
  * @param {Buffer} fileBuffer - Optional file buffer for cover image
  * @param {string} originalFileName - Optional original file name
@@ -59,8 +59,7 @@ const createBlog = async (
     // Create blog first (data is already validated and trimmed by controller)
     const blog = await Blog.create({
       title: blogData.title,
-      description: blogData.description || null,
-      body: blogData.body,
+      description: blogData.description,
       coverImage: blogData.coverImage || null,
       topic: blogData.topic || null,
       featured: blogData.featured || false,

@@ -44,14 +44,10 @@ module.exports = (sequelize, DataTypes) => {
       },
       description: {
         type: DataTypes.TEXT,
-        allowNull: true,
-      },
-      body: {
-        type: DataTypes.TEXT,
         allowNull: false,
         validate: {
           notEmpty: {
-            msg: 'Body cannot be empty',
+            msg: 'Description cannot be empty',
           },
         },
       },
@@ -79,4 +75,3 @@ module.exports = (sequelize, DataTypes) => {
 
   return Blog;
 };
-
