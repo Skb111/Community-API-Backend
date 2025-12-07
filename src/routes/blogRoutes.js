@@ -7,7 +7,7 @@ const {
   deleteBlogPost,
   updateCoverImage,
 } = require('../controllers/blogController');
-const { requireAdmin } = require('../middleware/authMiddleware');
+const { authenticateJWT, requireAdmin } = require('../middleware/authMiddleware');
 const { handleMulterUpload } = require('../middleware/uploadMiddleware');
 
 const router = express.Router();
@@ -302,6 +302,7 @@ const router = express.Router();
  */
 router.post(
   '/',
+  authenticateJWT,
   requireAdmin,
   handleMulterUpload('coverImage'), // Optional file upload
   createBlogPost
@@ -571,7 +572,7 @@ router.get('/:id', getBlogPost);
  *                   type: string
  *                   example: Failed to update blog
  */
-router.patch('/:id', requireAdmin, updateBlogPost);
+router.patch('/:id', authenticateJWT, requireAdmin, updateBlogPost);
 
 /**
  * @swagger
@@ -657,7 +658,7 @@ router.patch('/:id', requireAdmin, updateBlogPost);
  *                   type: string
  *                   example: Failed to delete blog
  */
-router.delete('/:id', requireAdmin, deleteBlogPost);
+router.delete('/:id', authenticateJWT, requireAdmin, deleteBlogPost);
 
 /**
  * @swagger
@@ -773,6 +774,12 @@ router.delete('/:id', requireAdmin, deleteBlogPost);
  *                   type: string
  *                   example: Failed to update cover image
  */
-router.patch('/:id/cover-image', requireAdmin, handleMulterUpload('coverImage'), updateCoverImage);
+router.patch(
+  '/:id/cover-image',
+  authenticateJWT,
+  requireAdmin,
+  handleMulterUpload('coverImage'),
+  updateCoverImage
+);
 
 module.exports = router;

@@ -6,8 +6,8 @@ const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024; //
 const storage = multer.memoryStorage();
 
 const fileFilter = (_req, file, cb) => {
-  const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-  const allowedExtensions = ['.jpg', '.jpeg', '.png'];
+  const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
 
   const ext = path.extname(file.originalname).toLowerCase();
 
@@ -15,7 +15,7 @@ const fileFilter = (_req, file, cb) => {
     cb(null, true);
   } else {
     // Create a proper error that can be detected
-    const error = new Error('Invalid file type. Only JPEG and PNG images are allowed.');
+    const error = new Error('Invalid file type. Only JPEG, WEBP and PNG images are allowed.');
     error.name = 'MulterError';
     error.code = 'INVALID_FILE_TYPE';
     cb(error, false);

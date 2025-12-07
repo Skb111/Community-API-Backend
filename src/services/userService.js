@@ -11,7 +11,7 @@ const {
   extractObjectKeyFromUrl,
   deleteImage,
 } = require('../utils/imageUploader');
-const { User } = require('../models');
+const { User, Skill } = require('../models');
 const bcrypt = require('bcrypt');
 
 const logger = createLogger('USER_SERVICE');
@@ -217,7 +217,15 @@ const getAllUsers = async (paginationOptions = {}) => {
         attributes: { exclude: ['password'] }, // Exclude password from response
         limit: parseInt(pageSize, 10),
         offset: parseInt(offset, 10),
-        order: [['createdAt', 'DESC']], // Order by newest first
+        order: [['createdAt', 'DESC']], // Order by newest first,
+        include: [
+          {
+            model: Skill,
+            as: 'skills',
+            attributes: { exclude: ['createdBy'] }, // Exclude createdBy from skill objects
+            through: { attributes: [] }, // Exclude join table attributes
+          },
+        ],
       }),
     ]);
 
@@ -349,6 +357,7 @@ const getUserSkills = async (user) => {
         {
           model: Skill,
           as: 'skills',
+          attributes: { exclude: ['createdBy'] },
           through: { attributes: [] }, // Exclude join table attributes
         },
       ],

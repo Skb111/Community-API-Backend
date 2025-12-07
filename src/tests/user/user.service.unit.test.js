@@ -345,6 +345,14 @@ describe('USER_SERVICE', () => {
         limit: 10,
         offset: 0,
         order: [['createdAt', 'DESC']],
+        include: [
+          {
+            model: Skill,
+            as: 'skills',
+            attributes: { exclude: ['createdBy'] },
+            through: { attributes: [] },
+          },
+        ],
       });
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockUsers);
@@ -369,6 +377,14 @@ describe('USER_SERVICE', () => {
         limit: 10,
         offset: 10,
         order: [['createdAt', 'DESC']],
+        include: [
+          {
+            model: Skill,
+            as: 'skills',
+            attributes: { exclude: ['createdBy'] },
+            through: { attributes: [] },
+          },
+        ],
       });
       expect(result.pagination).toEqual({
         page: 2,
@@ -552,6 +568,7 @@ describe('USER_SERVICE', () => {
           {
             model: Skill,
             as: 'skills',
+            attributes: { exclude: ['createdBy'] },
             through: { attributes: [] },
           },
         ],
