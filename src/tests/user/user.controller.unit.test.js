@@ -12,8 +12,6 @@ const mockGetUserSkills = jest.fn();
 const mockAddSkillToUser = jest.fn();
 const mockRemoveSkillFromUser = jest.fn();
 
-const mockChangePasswordValidate = jest.fn();
-
 jest.mock('../../services/userService', () => ({
   uploadProfilePicture: mockUploadProfilePicture,
   updateProfileData: mockUpdateProfileData,
@@ -44,20 +42,20 @@ jest.mock('../../middleware/errorHandler', () => ({
 }));
 
 // -------------------------------------------------------
-// STEP 4: Mock validator module
+// STEP 4: Mock validator schemas (Joi schemas)
 // -------------------------------------------------------
-const mockValidate = jest.fn();
-jest.mock('../../utils/index', () => ({
-  validate: (...args) => mockValidate(...args),
-}));
-
-// utils/validator — we override changePasswordSchema, paginationQuerySchema, and addSkillToUserSchema
+const mockUpdateProfileValidate = jest.fn();
+const mockChangePasswordValidate = jest.fn();
 const mockPaginationQueryValidate = jest.fn();
 const mockAddSkillToUserValidate = jest.fn();
+
 jest.mock('../../utils/validator', () => {
   const actual = jest.requireActual('../../utils/validator');
   return {
     ...actual,
+    updateProfileSchema: {
+      validate: (...args) => mockUpdateProfileValidate(...args),
+    },
     changePasswordSchema: {
       validate: (...args) => mockChangePasswordValidate(...args),
     },
@@ -163,47 +161,67 @@ describe('UserController', () => {
   });
 
   // ======================================================
-  // ✅ updateProfile TESTS (New + Fixed)
+  // ✅ updateProfile TESTS (Updated for explicit validation)
   // ======================================================
   describe('updateProfile', () => {
     it('should validate input and return 200 on success', async () => {
       const req = mockRequest({
-        body: { fullname: 'John Doe', bio: 'Loves testing' },
+        body: { fullname: 'John Doe', email: 'john@example.com' },
       });
       const res = mockResponse();
 
-      const validatedData = { fullname: 'John Doe', bio: 'Loves testing' };
-      mockValidate.mockReturnValue({ _value: validatedData, errorResponse: null });
+      const validatedData = { fullname: 'John Doe', email: 'john@example.com' };
+      mockUpdateProfileValidate.mockReturnValue({ error: null, value: validatedData });
 
       const mockResult = {
         success: true,
         message: 'Profile updated successfully',
-        user: { id: 'user-123', fullname: 'John Doe', bio: 'Loves testing' },
+        user: { id: 'user-123', fullname: 'John Doe', email: 'john@example.com' },
       };
 
       mockUpdateProfileData.mockResolvedValue(mockResult);
 
       await updateProfile(req, res);
 
-      expect(mockValidate).toHaveBeenCalled();
+      expect(mockUpdateProfileValidate).toHaveBeenCalledWith(
+        { fullname: 'John Doe', email: 'john@example.com' },
+        { abortEarly: false }
+      );
       expect(mockUpdateProfileData).toHaveBeenCalledWith(req.user, validatedData);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(mockResult);
     });
 
-    it('should return 400 if validation fails', async () => {
+    it('should throw ValidationError if validation fails', async () => {
       const req = mockRequest({ body: { fullname: '' } });
       const res = mockResponse();
 
-      mockValidate.mockReturnValue({
-        _value: null,
-        errorResponse: { success: false, message: 'Invalid input' },
+      mockUpdateProfileValidate.mockReturnValue({
+        error: {
+          details: [{ message: 'Fullname cannot be empty' }],
+        },
+        value: null,
       });
 
-      await updateProfile(req, res);
+      await expect(updateProfile(req, res)).rejects.toThrow(ValidationError);
+      expect(mockUpdateProfileData).not.toHaveBeenCalled();
+    });
 
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({ success: false, message: 'Invalid input' });
+    it('should throw ValidationError with multiple error messages', async () => {
+      const req = mockRequest({ body: { fullname: '', email: 'invalid-email' } });
+      const res = mockResponse();
+
+      mockUpdateProfileValidate.mockReturnValue({
+        error: {
+          details: [
+            { message: 'Fullname cannot be empty' },
+            { message: 'Email must be a valid email address' },
+          ],
+        },
+        value: null,
+      });
+
+      await expect(updateProfile(req, res)).rejects.toThrow(ValidationError);
       expect(mockUpdateProfileData).not.toHaveBeenCalled();
     });
 
@@ -212,34 +230,12 @@ describe('UserController', () => {
       const res = mockResponse();
 
       const validatedData = { fullname: 'Jane Doe' };
-      mockValidate.mockReturnValue({ _value: validatedData, errorResponse: null });
+      mockUpdateProfileValidate.mockReturnValue({ error: null, value: validatedData });
 
       const error = new Error('Database error');
       mockUpdateProfileData.mockRejectedValue(error);
 
-      await updateProfile(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({
-        success: false,
-        message: 'Database error',
-      });
-    });
-
-    it('should log and handle missing req.user gracefully', async () => {
-      const req = mockRequest({ user: undefined, body: { fullname: 'No User' } });
-      const res = mockResponse();
-
-      mockValidate.mockReturnValue({ _value: { fullname: 'No User' }, errorResponse: null });
-      mockUpdateProfileData.mockRejectedValue(new Error('User not found'));
-
-      await updateProfile(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({
-        success: false,
-        message: 'User not found',
-      });
+      await expect(updateProfile(req, res)).rejects.toThrow('Database error');
     });
   });
 
@@ -281,21 +277,15 @@ describe('UserController', () => {
       });
     });
 
-    it('returns 500 when an exception is raised (e.g., missing req.user)', async () => {
-      // Make req.user undefined so logger.info(req.user.id) throws
+    it('should propagate error when req.user is undefined', async () => {
+      // Make req.user undefined so accessing req.user.dataValues throws
       const req = mockRequest({ user: undefined });
       const res = mockResponse();
 
-      await getProfile(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          success: false,
-          // message will be a TypeError about reading 'id' of undefined; assert presence only
-          message: expect.any(String),
-        })
-      );
+      // With asyncHandler, the error will be propagated
+      await expect(getProfile(req, res)).rejects.toThrow();
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
     });
   });
 
@@ -326,7 +316,7 @@ describe('UserController', () => {
 
       await addSkillToUser(req, res);
 
-      expect(mockAddSkillToUserValidate).toHaveBeenCalledWith(req.body);
+      expect(mockAddSkillToUserValidate).toHaveBeenCalledWith(req.body, { abortEarly: false });
       expect(mockAddSkillToUser).toHaveBeenCalledWith(req.user, skillId);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
@@ -603,7 +593,6 @@ describe('UserController', () => {
         value: {
           currentPassword: 'OldPassword123!',
           newPassword: 'NewPassword456!',
-          confirmPassword: 'NewPassword456!',
         },
       });
 
@@ -611,7 +600,7 @@ describe('UserController', () => {
 
       await changePassword(req, res);
 
-      expect(mockChangePasswordValidate).toHaveBeenCalledWith(req.body);
+      expect(mockChangePasswordValidate).toHaveBeenCalledWith(req.body, { abortEarly: false });
       expect(mockChangeUserPassword).toHaveBeenCalledWith(
         req.user,
         'OldPassword123!',
@@ -637,14 +626,17 @@ describe('UserController', () => {
 
       mockChangePasswordValidate.mockReturnValue({
         error: {
-          details: [{ message: 'New password must be at least 8 characters long' }],
+          details: [
+            { message: 'Current password is required' },
+            { message: 'New password must be at least 8 characters long' },
+          ],
         },
         value: null,
       });
 
       await expect(changePassword(req, res)).rejects.toThrow(ValidationError);
 
-      expect(mockChangePasswordValidate).toHaveBeenCalledWith(req.body);
+      expect(mockChangePasswordValidate).toHaveBeenCalledWith(req.body, { abortEarly: false });
       expect(mockChangeUserPassword).not.toHaveBeenCalled();
       expect(res.status).not.toHaveBeenCalled();
       expect(res.json).not.toHaveBeenCalled();
@@ -666,7 +658,6 @@ describe('UserController', () => {
         value: {
           currentPassword: 'WrongPassword123!',
           newPassword: 'NewPassword456!',
-          confirmPassword: 'NewPassword456!',
         },
       });
 
@@ -697,7 +688,7 @@ describe('UserController', () => {
 
       await expect(changePassword(req, res)).rejects.toThrow(ValidationError);
 
-      expect(mockChangePasswordValidate).toHaveBeenCalledWith({});
+      expect(mockChangePasswordValidate).toHaveBeenCalledWith({}, { abortEarly: false });
       expect(mockChangeUserPassword).not.toHaveBeenCalled();
     });
   });
@@ -746,7 +737,7 @@ describe('UserController', () => {
 
       await getAllUsers(req, res);
 
-      expect(mockPaginationQueryValidate).toHaveBeenCalledWith(req.query);
+      expect(mockPaginationQueryValidate).toHaveBeenCalledWith(req.query, { abortEarly: false });
       expect(mockGetAllUsers).toHaveBeenCalledWith({ page: 1, pageSize: 10 });
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
@@ -768,6 +759,7 @@ describe('UserController', () => {
 
       await getAllUsers(req, res);
 
+      expect(mockPaginationQueryValidate).toHaveBeenCalledWith({}, { abortEarly: false });
       expect(mockGetAllUsers).toHaveBeenCalledWith({ page: 1, pageSize: 10 });
       expect(res.status).toHaveBeenCalledWith(200);
     });
@@ -787,7 +779,7 @@ describe('UserController', () => {
 
       await expect(getAllUsers(req, res)).rejects.toThrow(ValidationError);
 
-      expect(mockPaginationQueryValidate).toHaveBeenCalledWith(req.query);
+      expect(mockPaginationQueryValidate).toHaveBeenCalledWith(req.query, { abortEarly: false });
       expect(mockGetAllUsers).not.toHaveBeenCalled();
       expect(res.status).not.toHaveBeenCalled();
     });

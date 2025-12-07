@@ -182,7 +182,7 @@ describe('POST /api/v1/roles/assign', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toContain('failed');
+      expect(res.body.message[0]).toContain('required');
     });
 
     it('returns 400 when role is missing', async () => {
@@ -192,7 +192,7 @@ describe('POST /api/v1/roles/assign', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toContain('failed');
+      expect(res.body.message[0]).toContain('required');
     });
 
     it('returns 400 when role is invalid', async () => {
@@ -203,7 +203,7 @@ describe('POST /api/v1/roles/assign', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toContain('failed');
+      expect(res.body.message[0]).toContain('Role must be');
     });
 
     it('returns 400 when trying to assign ROOT role (not in schema)', async () => {
@@ -214,7 +214,7 @@ describe('POST /api/v1/roles/assign', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toContain('failed');
+      expect(res.body.message[0]).toContain('Role must be');
     });
 
     it('returns 400 for empty request body', async () => {
@@ -263,7 +263,7 @@ describe('POST /api/v1/roles/assign', () => {
 
       expect(res.status).toBe(403);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toMatch(/cannot modify your own role/i);
+      expect(res.body.message[0]).toBe('You cannot modify your own role');
     });
 
     it('ROOT cannot modify own role', async () => {
@@ -274,7 +274,7 @@ describe('POST /api/v1/roles/assign', () => {
 
       expect(res.status).toBe(403);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toMatch(/cannot modify your own role/i);
+      expect(res.body.message[0]).toBe('You cannot modify your own role');
     });
   });
 
@@ -289,7 +289,7 @@ describe('POST /api/v1/roles/assign', () => {
 
       expect(res.status).toBe(404);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toMatch(/not found/i);
+      expect(res.body.message[0]).toContain('not found');
     });
   });
 
