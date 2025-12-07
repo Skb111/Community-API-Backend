@@ -5,7 +5,7 @@ const {
   updateBlog,
   deleteBlog,
   updateBlogCoverImage,
-} = require('../services/blogService');
+} = require('../services/blog/blogService');
 const createLogger = require('../utils/logger');
 const { asyncHandler } = require('../middleware/errorHandler');
 const {
@@ -25,12 +25,12 @@ const logger = createLogger('BLOG_CONTROLLER');
  */
 const createBlogPost = asyncHandler(async (req, res) => {
   const body = req.body || {};
-  
+
   // If file is uploaded, remove coverImage from body (file takes priority)
   if (req.file) {
     delete body.coverImage;
   }
-  
+
   const { error, value } = createBlogSchema.validate(body, { abortEarly: false });
 
   if (error) {
@@ -42,7 +42,7 @@ const createBlogPost = asyncHandler(async (req, res) => {
   }
 
   const userId = req.user.id;
-  
+
   // Handle optional file upload
   const fileBuffer = req.file?.buffer || null;
   const originalFileName = req.file?.originalname || null;
@@ -95,9 +95,7 @@ const getBlogPost = asyncHandler(async (req, res) => {
   const { error, value } = blogIdParamSchema.validate(req.params);
 
   if (error) {
-    logger.error(
-      `validation error occurred when retrieving blog reason=${error.message}`
-    );
+    logger.error(`validation error occurred when retrieving blog reason=${error.message}`);
     throw new ValidationError(error.details[0].message);
   }
 
@@ -163,9 +161,7 @@ const deleteBlogPost = asyncHandler(async (req, res) => {
   const { error, value } = blogIdParamSchema.validate(req.params);
 
   if (error) {
-    logger.error(
-      `validation error occurred when deleting blog reason=${error.message}`
-    );
+    logger.error(`validation error occurred when deleting blog reason=${error.message}`);
     throw new ValidationError(error.details[0].message);
   }
 
