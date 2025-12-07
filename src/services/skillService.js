@@ -59,18 +59,18 @@ const getAllSkills = async (paginationOptions = {}) => {
     // Calculate pagination metadata
     const totalPages = Math.ceil(totalCount / pageSize);
     const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
+    const hasPreviousPage = page > 1;
 
     const result = {
       success: true,
       data: skills,
       pagination: {
-        currentPage: parseInt(page, 10),
+        page: parseInt(page, 10),
         pageSize: parseInt(pageSize, 10),
-        totalCount,
+        totalItems: totalCount,
         totalPages,
         hasNextPage,
-        hasPrevPage,
+        hasPreviousPage,
       },
     };
 

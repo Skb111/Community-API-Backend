@@ -85,7 +85,7 @@ describe('SKILL_SERVICE', () => {
       const cachedResult = {
         success: true,
         data: [mockSkill],
-        pagination: { currentPage: 1, pageSize: 10, totalCount: 1 },
+        pagination: { page: 1, pageSize: 10, totalItems: 1 },
       };
       getCachedSkillList.mockResolvedValue(cachedResult);
 

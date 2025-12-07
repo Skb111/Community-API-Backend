@@ -198,7 +198,6 @@ const changeUserPassword = async (user, currentPassword, newPassword) => {
   }
 };
 
-
 /**
  * Get all users with pagination
  * @param {Object} paginationOptions - Pagination options { page, pageSize }
@@ -225,7 +224,7 @@ const getAllUsers = async (paginationOptions = {}) => {
     // Calculate pagination metadata
     const totalPages = Math.ceil(totalCount / pageSize);
     const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
+    const hasPreviousPage = page > 1;
 
     logger.info(`Retrieved ${users.length} users (page ${page} of ${totalPages})`);
 
@@ -233,12 +232,12 @@ const getAllUsers = async (paginationOptions = {}) => {
       success: true,
       data: users,
       pagination: {
-        currentPage: parseInt(page, 10),
+        page: parseInt(page, 10),
         pageSize: parseInt(pageSize, 10),
-        totalCount,
+        totalItems: totalCount,
         totalPages,
         hasNextPage,
-        hasPrevPage,
+        hasPreviousPage,
       },
     };
   } catch (error) {

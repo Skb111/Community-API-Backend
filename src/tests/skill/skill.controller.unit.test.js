@@ -117,12 +117,12 @@ describe('SKILL_CONTROLLER', () => {
         success: true,
         data: [{ id: 'skill-1', name: 'JavaScript' }],
         pagination: {
-          currentPage: 1,
+          page: 1,
           pageSize: 10,
-          totalCount: 1,
+          totalItems: 1,
           totalPages: 1,
           hasNextPage: false,
-          hasPrevPage: false,
+          hasPreviousPage: false,
         },
       };
 
@@ -153,12 +153,12 @@ describe('SKILL_CONTROLLER', () => {
         success: true,
         data: [],
         pagination: {
-          currentPage: 1,
+          page: 1,
           pageSize: 10,
-          totalCount: 0,
+          totalItems: 0,
           totalPages: 0,
           hasNextPage: false,
-          hasPrevPage: false,
+          hasPreviousPage: false,
         },
       };
 

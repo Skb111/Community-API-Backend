@@ -86,13 +86,13 @@ const router = express.Router();
  *                 pagination:
  *                   type: object
  *                   properties:
- *                     currentPage:
+ *                     page:
  *                       type: integer
  *                       example: 1
  *                     pageSize:
  *                       type: integer
  *                       example: 10
- *                     totalCount:
+ *                     totalItems:
  *                       type: integer
  *                       example: 50
  *                     totalPages:
@@ -101,7 +101,7 @@ const router = express.Router();
  *                     hasNextPage:
  *                       type: boolean
  *                       example: true
- *                     hasPrevPage:
+ *                     hasPreviousPage:
  *                       type: boolean
  *                       example: false
  *       400:

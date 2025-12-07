@@ -714,12 +714,12 @@ describe('UserController', () => {
         },
       ],
       pagination: {
-        currentPage: 1,
+        page: 1,
         pageSize: 10,
-        totalCount: 2,
+        totalItems: 2,
         totalPages: 1,
         hasNextPage: false,
-        hasPrevPage: false,
+        hasPreviousPage: false,
       },
     };
 

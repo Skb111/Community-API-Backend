@@ -349,12 +349,12 @@ describe('USER_SERVICE', () => {
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockUsers);
       expect(result.pagination).toEqual({
-        currentPage: 1,
+        page: 1,
         pageSize: 10,
-        totalCount: 2,
+        totalItems: 2,
         totalPages: 1,
         hasNextPage: false,
-        hasPrevPage: false,
+        hasPreviousPage: false,
       });
     });
 
@@ -371,30 +371,30 @@ describe('USER_SERVICE', () => {
         order: [['createdAt', 'DESC']],
       });
       expect(result.pagination).toEqual({
-        currentPage: 2,
+        page: 2,
         pageSize: 10,
-        totalCount: 25,
+        totalItems: 25,
         totalPages: 3,
         hasNextPage: true,
-        hasPrevPage: true,
+        hasPreviousPage: true,
       });
     });
 
-    it('✅ should calculate hasNextPage and hasPrevPage correctly', async () => {
+    it('✅ should calculate hasNextPage and hasPreviousPage correctly', async () => {
       mockCount.mockResolvedValueOnce(50);
       mockFindAll.mockResolvedValueOnce(mockUsers);
 
       // First page
       const result1 = await getAllUsers({ page: 1, pageSize: 10 });
       expect(result1.pagination.hasNextPage).toBe(true);
-      expect(result1.pagination.hasPrevPage).toBe(false);
+      expect(result1.pagination.hasPreviousPage).toBe(false);
 
       // Last page
       mockCount.mockResolvedValueOnce(50);
       mockFindAll.mockResolvedValueOnce(mockUsers);
       const result2 = await getAllUsers({ page: 5, pageSize: 10 });
       expect(result2.pagination.hasNextPage).toBe(false);
-      expect(result2.pagination.hasPrevPage).toBe(true);
+      expect(result2.pagination.hasPreviousPage).toBe(true);
     });
 
     it('⚠️ should throw InternalServerError on database error', async () => {
