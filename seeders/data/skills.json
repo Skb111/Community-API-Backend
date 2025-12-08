@@ -1,0 +1,406 @@
+[
+  {
+    "name": "JavaScript",
+    "description": "A high-level, interpreted programming language that conforms to the ECMAScript specification"
+  },
+  {
+    "name": "TypeScript",
+    "description": "A strongly typed programming language that builds on JavaScript"
+  },
+  {
+    "name": "Python",
+    "description": "A high-level, interpreted programming language known for its simplicity and readability"
+  },
+  {
+    "name": "Java",
+    "description": "A class-based, object-oriented programming language designed to have few implementation dependencies"
+  },
+  {
+    "name": "C++",
+    "description": "A general-purpose programming language created as an extension of the C programming language"
+  },
+  {
+    "name": "C#",
+    "description": "A modern, object-oriented programming language developed by Microsoft"
+  },
+  {
+    "name": "Ruby",
+    "description": "A dynamic, open source programming language with a focus on simplicity and productivity"
+  },
+  {
+    "name": "Go",
+    "description": "A statically typed, compiled programming language designed at Google"
+  },
+  {
+    "name": "Rust",
+    "description": "A multi-paradigm programming language focused on performance and safety"
+  },
+  {
+    "name": "PHP",
+    "description": "A popular general-purpose scripting language especially suited to web development"
+  },
+  {
+    "name": "Swift",
+    "description": "A powerful and intuitive programming language for iOS, macOS, and more"
+  },
+  {
+    "name": "Kotlin",
+    "description": "A modern programming language that makes developers happier, primarily used for Android development"
+  },
+  {
+    "name": "Scala",
+    "description": "A general-purpose programming language providing support for functional programming"
+  },
+  {
+    "name": "R",
+    "description": "A programming language and environment for statistical computing and graphics"
+  },
+  {
+    "name": "MATLAB",
+    "description": "A programming platform designed specifically for engineers and scientists"
+  },
+  {
+    "name": "Node.js",
+    "description": "A JavaScript runtime built on Chrome's V8 JavaScript engine"
+  },
+  {
+    "name": "React",
+    "description": "A JavaScript library for building user interfaces"
+  },
+  {
+    "name": "Angular",
+    "description": "A TypeScript-based open-source web application framework"
+  },
+  {
+    "name": "Vue.js",
+    "description": "A progressive JavaScript framework for building user interfaces"
+  },
+  {
+    "name": "Next.js",
+    "description": "A React framework for production-grade applications with server-side rendering"
+  },
+  {
+    "name": "Svelte",
+    "description": "A radical new approach to building user interfaces with less code"
+  },
+  {
+    "name": "Express.js",
+    "description": "A minimal and flexible Node.js web application framework"
+  },
+  {
+    "name": "Django",
+    "description": "A high-level Python web framework that encourages rapid development"
+  },
+  {
+    "name": "Flask",
+    "description": "A lightweight WSGI web application framework in Python"
+  },
+  {
+    "name": "FastAPI",
+    "description": "A modern, fast web framework for building APIs with Python"
+  },
+  {
+    "name": "Spring Boot",
+    "description": "A Java-based framework used to create stand-alone, production-grade Spring applications"
+  },
+  {
+    "name": "Ruby on Rails",
+    "description": "A server-side web application framework written in Ruby"
+  },
+  {
+    "name": "Laravel",
+    "description": "A PHP web application framework with expressive, elegant syntax"
+  },
+  {
+    "name": "ASP.NET Core",
+    "description": "A cross-platform, high-performance framework for building modern cloud-based applications"
+  },
+  {
+    "name": "PostgreSQL",
+    "description": "A powerful, open source object-relational database system"
+  },
+  {
+    "name": "MySQL",
+    "description": "An open-source relational database management system"
+  },
+  {
+    "name": "MongoDB",
+    "description": "A document-oriented NoSQL database program"
+  },
+  {
+    "name": "Redis",
+    "description": "An in-memory data structure store, used as a database, cache, and message broker"
+  },
+  {
+    "name": "SQLite",
+    "description": "A C-language library that implements a small, fast, self-contained SQL database engine"
+  },
+  {
+    "name": "Oracle Database",
+    "description": "A multi-model database management system produced by Oracle Corporation"
+  },
+  {
+    "name": "Microsoft SQL Server",
+    "description": "A relational database management system developed by Microsoft"
+  },
+  {
+    "name": "Cassandra",
+    "description": "A free and open-source, distributed, wide-column store, NoSQL database"
+  },
+  {
+    "name": "Elasticsearch",
+    "description": "A distributed, RESTful search and analytics engine"
+  },
+  {
+    "name": "Docker",
+    "description": "A platform for developing, shipping, and running applications in containers"
+  },
+  {
+    "name": "Kubernetes",
+    "description": "An open-source system for automating deployment, scaling, and management of containerized applications"
+  },
+  {
+    "name": "AWS",
+    "description": "Amazon Web Services - a comprehensive cloud computing platform"
+  },
+  {
+    "name": "Azure",
+    "description": "Microsoft's cloud computing service for building, testing, deploying, and managing applications"
+  },
+  {
+    "name": "Google Cloud Platform",
+    "description": "A suite of cloud computing services provided by Google"
+  },
+  {
+    "name": "Git",
+    "description": "A distributed version control system for tracking changes in source code"
+  },
+  {
+    "name": "GitHub",
+    "description": "A web-based platform for version control and collaboration using Git"
+  },
+  {
+    "name": "GitLab",
+    "description": "A web-based DevOps lifecycle tool with built-in Git repository management"
+  },
+  {
+    "name": "CI/CD",
+    "description": "Continuous Integration and Continuous Deployment practices for automating software delivery"
+  },
+  {
+    "name": "Jenkins",
+    "description": "An open source automation server for building, testing, and deploying software"
+  },
+  {
+    "name": "Terraform",
+    "description": "An infrastructure as code tool for building, changing, and versioning infrastructure"
+  },
+  {
+    "name": "Ansible",
+    "description": "An open-source automation tool for configuration management and application deployment"
+  },
+  {
+    "name": "Linux",
+    "description": "A family of open-source Unix-like operating systems based on the Linux kernel"
+  },
+  {
+    "name": "Bash",
+    "description": "A Unix shell and command language for operating system interfaces"
+  },
+  {
+    "name": "HTML",
+    "description": "The standard markup language for documents designed to be displayed in a web browser"
+  },
+  {
+    "name": "CSS",
+    "description": "A style sheet language used for describing the presentation of a document written in HTML"
+  },
+  {
+    "name": "Sass",
+    "description": "A preprocessor scripting language that is interpreted or compiled into CSS"
+  },
+  {
+    "name": "Tailwind CSS",
+    "description": "A utility-first CSS framework for rapidly building custom user interfaces"
+  },
+  {
+    "name": "Bootstrap",
+    "description": "A free and open-source CSS framework for responsive, mobile-first front-end web development"
+  },
+  {
+    "name": "Material-UI",
+    "description": "A popular React UI framework implementing Google's Material Design"
+  },
+  {
+    "name": "REST API",
+    "description": "Representational State Transfer - an architectural style for designing networked applications"
+  },
+  {
+    "name": "GraphQL",
+    "description": "A query language for APIs and a runtime for executing those queries"
+  },
+  {
+    "name": "WebSockets",
+    "description": "A communication protocol providing full-duplex communication channels over a single TCP connection"
+  },
+  {
+    "name": "gRPC",
+    "description": "A high-performance, open-source universal RPC framework"
+  },
+  {
+    "name": "Microservices",
+    "description": "An architectural style that structures an application as a collection of loosely coupled services"
+  },
+  {
+    "name": "Machine Learning",
+    "description": "A branch of artificial intelligence focused on building systems that learn from data"
+  },
+  {
+    "name": "Deep Learning",
+    "description": "A subset of machine learning based on artificial neural networks"
+  },
+  {
+    "name": "TensorFlow",
+    "description": "An open-source platform for machine learning developed by Google"
+  },
+  {
+    "name": "PyTorch",
+    "description": "An open-source machine learning library developed by Facebook's AI Research lab"
+  },
+  {
+    "name": "Natural Language Processing",
+    "description": "A branch of AI that helps computers understand, interpret and manipulate human language"
+  },
+  {
+    "name": "Computer Vision",
+    "description": "A field of AI that trains computers to interpret and understand the visual world"
+  },
+  {
+    "name": "Data Science",
+    "description": "An interdisciplinary field that uses scientific methods to extract knowledge from data"
+  },
+  {
+    "name": "Data Analysis",
+    "description": "The process of inspecting, cleansing, and modeling data to discover useful information"
+  },
+  {
+    "name": "Big Data",
+    "description": "Large, complex datasets that require advanced processing and analysis techniques"
+  },
+  {
+    "name": "Apache Spark",
+    "description": "A unified analytics engine for large-scale data processing"
+  },
+  {
+    "name": "Apache Kafka",
+    "description": "A distributed event streaming platform for high-performance data pipelines"
+  },
+  {
+    "name": "Hadoop",
+    "description": "An open-source framework for distributed storage and processing of large datasets"
+  },
+  {
+    "name": "ETL",
+    "description": "Extract, Transform, Load - the process of combining data from multiple sources"
+  },
+  {
+    "name": "Data Warehousing",
+    "description": "The process of constructing and using a data warehouse for business intelligence"
+  },
+  {
+    "name": "Business Intelligence",
+    "description": "Technologies and strategies used for data analysis of business information"
+  },
+  {
+    "name": "Tableau",
+    "description": "A visual analytics platform for business intelligence and data visualization"
+  },
+  {
+    "name": "Power BI",
+    "description": "A business analytics service by Microsoft for interactive visualizations"
+  },
+  {
+    "name": "Agile",
+    "description": "An iterative approach to project management and software development"
+  },
+  {
+    "name": "Scrum",
+    "description": "An agile framework for managing complex projects with emphasis on teamwork"
+  },
+  {
+    "name": "Kanban",
+    "description": "A visual system for managing work as it moves through a process"
+  },
+  {
+    "name": "Test-Driven Development",
+    "description": "A software development process relying on software requirements being converted to test cases"
+  },
+  {
+    "name": "Unit Testing",
+    "description": "A software testing method where individual units of source code are tested"
+  },
+  {
+    "name": "Integration Testing",
+    "description": "A level of software testing where individual units are combined and tested as a group"
+  },
+  {
+    "name": "Jest",
+    "description": "A JavaScript testing framework with a focus on simplicity"
+  },
+  {
+    "name": "Pytest",
+    "description": "A mature full-featured Python testing framework"
+  },
+  {
+    "name": "Selenium",
+    "description": "A portable framework for testing web applications"
+  },
+  {
+    "name": "Cybersecurity",
+    "description": "The practice of protecting systems, networks, and programs from digital attacks"
+  },
+  {
+    "name": "Penetration Testing",
+    "description": "An authorized simulated cyberattack on a computer system to evaluate security"
+  },
+  {
+    "name": "OAuth",
+    "description": "An open standard for access delegation commonly used for token-based authentication"
+  },
+  {
+    "name": "JWT",
+    "description": "JSON Web Tokens - a compact means of representing claims to be transferred between parties"
+  },
+  {
+    "name": "Blockchain",
+    "description": "A distributed ledger technology that maintains a secure and decentralized record of transactions"
+  },
+  {
+    "name": "Solidity",
+    "description": "An object-oriented programming language for writing smart contracts on blockchain platforms"
+  },
+  {
+    "name": "Mobile Development",
+    "description": "The process of creating software applications that run on mobile devices"
+  },
+  {
+    "name": "React Native",
+    "description": "A framework for building native mobile apps using React"
+  },
+  {
+    "name": "Flutter",
+    "description": "Google's UI toolkit for building natively compiled applications for mobile, web, and desktop"
+  },
+  {
+    "name": "Game Development",
+    "description": "The art of creating games, from concept to finished product"
+  },
+  {
+    "name": "Unity",
+    "description": "A cross-platform game engine for creating 2D and 3D games"
+  },
+  {
+    "name": "Unreal Engine",
+    "description": "A game engine developed by Epic Games for creating high-fidelity games"
+  }
+]

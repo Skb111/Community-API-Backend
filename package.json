@@ -23,7 +23,8 @@
         "migrate:status:prod": "cross-env NODE_ENV=production sequelize-cli db:migrate:status",
         "migrate:prod": "cross-env NODE_ENV=production sequelize-cli db:migrate",
         "migrate:undo:prod": "cross-env NODE_ENV=production sequelize-cli db:migrate:undo",
-        "migrate:undo:all:prod": "cross-env NODE_ENV=production sequelize-cli db:migrate:undo:all"
+        "migrate:undo:all:prod": "cross-env NODE_ENV=production sequelize-cli db:migrate:undo:all",
+        "seed:skills:bulk": "node seeders/scripts/seedSkills.js"
     },
     "lint-staged": {
         "*.js": [
