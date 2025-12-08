@@ -1,7 +1,7 @@
 // middleware/authMiddleware.js
 const passport = require('passport');
 const { Strategy: JwtStrategy } = require('passport-jwt');
-const { UnauthorizedError } = require('../utils/customErrors');
+const { ForbiddenError, UnauthorizedError } = require('../utils/customErrors');
 const { User } = require('../models');
 const { cfg } = require('../utils/cookies');
 
@@ -99,9 +99,7 @@ const requireRole = (minRole) => (req, _res, next) => {
   }
 
   if (!req.user.hasRole(minRole)) {
-    return next(
-      new UnauthorizedError(`Insufficient permissions. Minimum required role: ${minRole}`)
-    );
+    return next(new ForbiddenError(`Insufficient permissions. Minimum required role: ${minRole}`));
   }
 
   return next();
@@ -113,7 +111,9 @@ const requireRole = (minRole) => (req, _res, next) => {
 const requireAdmin = requireRole('ADMIN');
 const requireRoot = requireRole('ROOT');
 
-module.exports = passport;
-module.exports.authenticateJWT = authenticateJWT;
-module.exports.requireAdmin = requireAdmin;
-module.exports.requireRoot = requireRoot;
+module.exports = {
+  passport,
+  authenticateJWT,
+  requireAdmin,
+  requireRoot,
+};

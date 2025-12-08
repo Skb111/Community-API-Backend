@@ -84,12 +84,12 @@ describe('Skills Controller (integration)', () => {
           message: 'Skills retrieved successfully',
           data: expect.any(Array),
           pagination: expect.objectContaining({
-            currentPage: expect.any(Number),
+            page: expect.any(Number),
             pageSize: expect.any(Number),
-            totalCount: expect.any(Number),
+            totalItems: expect.any(Number),
             totalPages: expect.any(Number),
             hasNextPage: expect.any(Boolean),
-            hasPrevPage: expect.any(Boolean),
+            hasPreviousPage: expect.any(Boolean),
           }),
         })
       );

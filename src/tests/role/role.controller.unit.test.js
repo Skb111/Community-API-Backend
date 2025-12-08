@@ -1,13 +1,29 @@
 // tests/unit/controllers/roleController.test.js
 const roleController = require('../../../src/controllers/roleController');
 const roleService = require('../../../src/services/roleService');
-const Validator = require('../../../src/utils/index');
 const createLogger = require('../../../src/utils/logger');
+const { ValidationError } = require('../../../src/utils/customErrors');
 
 // Mock dependencies
 jest.mock('../../../src/services/roleService');
-jest.mock('../../../src/utils/index');
 jest.mock('../../../src/utils/logger');
+
+// Mock asyncHandler (transparent in tests)
+jest.mock('../../../src/middleware/errorHandler', () => ({
+  asyncHandler: (fn) => fn,
+}));
+
+// Mock validator schema
+const mockAssignRoleValidate = jest.fn();
+jest.mock('../../../src/utils/validator', () => {
+  const actual = jest.requireActual('../../../src/utils/validator');
+  return {
+    ...actual,
+    assignRoleSchema: {
+      validate: (...args) => mockAssignRoleValidate(...args),
+    },
+  };
+});
 
 describe('RoleController', () => {
   let req, res, mockLogger;
@@ -62,9 +78,9 @@ describe('RoleController', () => {
           },
         };
 
-        Validator.validate.mockReturnValue({
-          _value: validatedValue,
-          errorResponse: null,
+        mockAssignRoleValidate.mockReturnValue({
+          error: null,
+          value: validatedValue,
         });
 
         roleService.assignRole.mockResolvedValue(serviceResponse);
@@ -73,7 +89,7 @@ describe('RoleController', () => {
         await roleController.assignRole(req, res);
 
         // Assert
-        expect(Validator.validate).toHaveBeenCalledWith(expect.anything(), req.body);
+        expect(mockAssignRoleValidate).toHaveBeenCalledWith(req.body, { abortEarly: false });
         expect(roleService.assignRole).toHaveBeenCalledWith('caller-456', 'user-123', 'ADMIN');
         expect(res.status).toHaveBeenCalledWith(200);
         expect(res.json).toHaveBeenCalledWith(serviceResponse);
@@ -97,9 +113,9 @@ describe('RoleController', () => {
           },
         };
 
-        Validator.validate.mockReturnValue({
-          _value: validatedValue,
-          errorResponse: null,
+        mockAssignRoleValidate.mockReturnValue({
+          error: null,
+          value: validatedValue,
         });
 
         roleService.assignRole.mockResolvedValue(serviceResponse);
@@ -115,71 +131,47 @@ describe('RoleController', () => {
     });
 
     describe('Validation Errors', () => {
-      it('should return 400 when validation fails', async () => {
+      it('should throw ValidationError when validation fails', async () => {
         // Arrange
-        const errorResponse = {
-          success: false,
-          message: 'Validation failed',
-          errors: ['User ID is required'],
-        };
-
-        Validator.validate.mockReturnValue({
-          _value: null,
-          errorResponse: errorResponse,
+        mockAssignRoleValidate.mockReturnValue({
+          error: {
+            details: [{ message: 'User ID is required' }],
+          },
+          value: null,
         });
 
-        // Act
-        await roleController.assignRole(req, res);
-
-        // Assert
-        expect(Validator.validate).toHaveBeenCalledWith(expect.anything(), req.body);
+        // Act & Assert
+        await expect(roleController.assignRole(req, res)).rejects.toThrow(ValidationError);
+        expect(mockAssignRoleValidate).toHaveBeenCalledWith(req.body, { abortEarly: false });
         expect(roleService.assignRole).not.toHaveBeenCalled();
-        expect(res.status).toHaveBeenCalledWith(400);
-        expect(res.json).toHaveBeenCalledWith(errorResponse);
       });
 
-      it('should return 400 for missing userId', async () => {
+      it('should throw ValidationError for missing userId', async () => {
         // Arrange
         req.body.userId = undefined;
-        const errorResponse = {
-          success: false,
-          message: 'Validation failed',
-          errors: ['User ID is required'],
-        };
-
-        Validator.validate.mockReturnValue({
-          _value: null,
-          errorResponse: errorResponse,
+        mockAssignRoleValidate.mockReturnValue({
+          error: {
+            details: [{ message: 'User ID is required' }],
+          },
+          value: null,
         });
 
-        // Act
-        await roleController.assignRole(req, res);
-
-        // Assert
-        expect(res.status).toHaveBeenCalledWith(400);
-        expect(res.json).toHaveBeenCalledWith(errorResponse);
+        // Act & Assert
+        await expect(roleController.assignRole(req, res)).rejects.toThrow(ValidationError);
       });
 
-      it('should return 400 for invalid role', async () => {
+      it('should throw ValidationError for invalid role', async () => {
         // Arrange
         req.body.role = 'INVALID_ROLE';
-        const errorResponse = {
-          success: false,
-          message: 'Validation failed',
-          errors: ['Role must be one of: USER, ADMIN, ROOT'],
-        };
-
-        Validator.validate.mockReturnValue({
-          _value: null,
-          errorResponse: errorResponse,
+        mockAssignRoleValidate.mockReturnValue({
+          error: {
+            details: [{ message: 'Role must be one of: USER, ADMIN' }],
+          },
+          value: null,
         });
 
-        // Act
-        await roleController.assignRole(req, res);
-
-        // Assert
-        expect(res.status).toHaveBeenCalledWith(400);
-        expect(res.json).toHaveBeenCalledWith(errorResponse);
+        // Act & Assert
+        await expect(roleController.assignRole(req, res)).rejects.toThrow(ValidationError);
       });
     });
 
@@ -191,24 +183,17 @@ describe('RoleController', () => {
           role: 'ADMIN',
         };
 
-        Validator.validate.mockReturnValue({
-          _value: validatedValue,
-          errorResponse: null,
+        mockAssignRoleValidate.mockReturnValue({
+          error: null,
+          value: validatedValue,
         });
 
         const serviceError = new Error('Target user not found');
         serviceError.statusCode = 404;
         roleService.assignRole.mockRejectedValue(serviceError);
 
-        // Act
-        await roleController.assignRole(req, res);
-
-        // Assert
-        expect(res.status).toHaveBeenCalledWith(404);
-        expect(res.json).toHaveBeenCalledWith({
-          success: false,
-          message: 'Target user not found',
-        });
+        // Act & Assert
+        await expect(roleController.assignRole(req, res)).rejects.toThrow('Target user not found');
       });
 
       it('should return 403 when trying to assign ROOT role', async () => {
@@ -219,9 +204,9 @@ describe('RoleController', () => {
           role: 'ROOT',
         };
 
-        Validator.validate.mockReturnValue({
-          _value: validatedValue,
-          errorResponse: null,
+        mockAssignRoleValidate.mockReturnValue({
+          error: null,
+          value: validatedValue,
         });
 
         const serviceError = new Error(
@@ -230,15 +215,10 @@ describe('RoleController', () => {
         serviceError.statusCode = 403;
         roleService.assignRole.mockRejectedValue(serviceError);
 
-        // Act
-        await roleController.assignRole(req, res);
-
-        // Assert
-        expect(res.status).toHaveBeenCalledWith(403);
-        expect(res.json).toHaveBeenCalledWith({
-          success: false,
-          message: 'ROOT role cannot be assigned. There can only be one ROOT user.',
-        });
+        // Act & Assert
+        await expect(roleController.assignRole(req, res)).rejects.toThrow(
+          'ROOT role cannot be assigned. There can only be one ROOT user.'
+        );
       });
 
       it('should return 403 when trying to modify own role', async () => {
@@ -248,24 +228,19 @@ describe('RoleController', () => {
           role: 'USER',
         };
 
-        Validator.validate.mockReturnValue({
-          _value: validatedValue,
-          errorResponse: null,
+        mockAssignRoleValidate.mockReturnValue({
+          error: null,
+          value: validatedValue,
         });
 
         const serviceError = new Error('You cannot modify your own role');
         serviceError.statusCode = 403;
         roleService.assignRole.mockRejectedValue(serviceError);
 
-        // Act
-        await roleController.assignRole(req, res);
-
-        // Assert
-        expect(res.status).toHaveBeenCalledWith(403);
-        expect(res.json).toHaveBeenCalledWith({
-          success: false,
-          message: 'You cannot modify your own role',
-        });
+        // Act & Assert
+        await expect(roleController.assignRole(req, res)).rejects.toThrow(
+          'You cannot modify your own role'
+        );
       });
 
       it('should return 403 when caller has insufficient permissions', async () => {
@@ -276,9 +251,9 @@ describe('RoleController', () => {
           role: 'ADMIN',
         };
 
-        Validator.validate.mockReturnValue({
-          _value: validatedValue,
-          errorResponse: null,
+        mockAssignRoleValidate.mockReturnValue({
+          error: null,
+          value: validatedValue,
         });
 
         const serviceError = new Error(
@@ -287,15 +262,10 @@ describe('RoleController', () => {
         serviceError.statusCode = 403;
         roleService.assignRole.mockRejectedValue(serviceError);
 
-        // Act
-        await roleController.assignRole(req, res);
-
-        // Assert
-        expect(res.status).toHaveBeenCalledWith(403);
-        expect(res.json).toHaveBeenCalledWith({
-          success: false,
-          message: 'Insufficient permissions. Only ADMIN or ROOT can assign ADMIN role.',
-        });
+        // Act & Assert
+        await expect(roleController.assignRole(req, res)).rejects.toThrow(
+          'Insufficient permissions. Only ADMIN or ROOT can assign ADMIN role.'
+        );
       });
 
       it('should return 403 when trying to assign role higher than caller', async () => {
@@ -307,24 +277,19 @@ describe('RoleController', () => {
           role: 'ROOT',
         };
 
-        Validator.validate.mockReturnValue({
-          _value: validatedValue,
-          errorResponse: null,
+        mockAssignRoleValidate.mockReturnValue({
+          error: null,
+          value: validatedValue,
         });
 
         const serviceError = new Error('Cannot assign a role higher than your own');
         serviceError.statusCode = 403;
         roleService.assignRole.mockRejectedValue(serviceError);
 
-        // Act
-        await roleController.assignRole(req, res);
-
-        // Assert
-        expect(res.status).toHaveBeenCalledWith(403);
-        expect(res.json).toHaveBeenCalledWith({
-          success: false,
-          message: 'Cannot assign a role higher than your own',
-        });
+        // Act & Assert
+        await expect(roleController.assignRole(req, res)).rejects.toThrow(
+          'Cannot assign a role higher than your own'
+        );
       });
 
       it('should return 500 for unexpected errors without statusCode', async () => {
@@ -334,48 +299,35 @@ describe('RoleController', () => {
           role: 'ADMIN',
         };
 
-        Validator.validate.mockReturnValue({
-          _value: validatedValue,
-          errorResponse: null,
+        mockAssignRoleValidate.mockReturnValue({
+          error: null,
+          value: validatedValue,
         });
 
         const serviceError = new Error('Database connection failed');
         // No statusCode set
         roleService.assignRole.mockRejectedValue(serviceError);
 
-        // Act
-        await roleController.assignRole(req, res);
-
-        // Assert
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(res.json).toHaveBeenCalledWith({
-          success: false,
-          message: 'Database connection failed',
-        });
+        // Act & Assert
+        await expect(roleController.assignRole(req, res)).rejects.toThrow(
+          'Database connection failed'
+        );
       });
     });
 
     describe('Edge Cases', () => {
-      it('should handle empty request body', async () => {
+      it('should throw ValidationError for empty request body', async () => {
         // Arrange
         req.body = {};
-        const errorResponse = {
-          success: false,
-          message: 'Validation failed',
-          errors: ['User ID is required', 'Role is required'],
-        };
-
-        Validator.validate.mockReturnValue({
-          _value: null,
-          errorResponse: errorResponse,
+        mockAssignRoleValidate.mockReturnValue({
+          error: {
+            details: [{ message: 'User ID is required' }, { message: 'Role is required' }],
+          },
+          value: null,
         });
 
-        // Act
-        await roleController.assignRole(req, res);
-
-        // Assert
-        expect(res.status).toHaveBeenCalledWith(400);
-        expect(res.json).toHaveBeenCalledWith(errorResponse);
+        // Act & Assert
+        await expect(roleController.assignRole(req, res)).rejects.toThrow(ValidationError);
       });
 
       it('should extract caller ID from req.user', async () => {
@@ -385,9 +337,9 @@ describe('RoleController', () => {
           role: 'ADMIN',
         };
 
-        Validator.validate.mockReturnValue({
-          _value: validatedValue,
-          errorResponse: null,
+        mockAssignRoleValidate.mockReturnValue({
+          error: null,
+          value: validatedValue,
         });
 
         roleService.assignRole.mockResolvedValue({

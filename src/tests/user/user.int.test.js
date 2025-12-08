@@ -282,12 +282,12 @@ describe('Users Controller (integration)', () => {
           message: 'Users retrieved successfully',
           data: expect.any(Array),
           pagination: expect.objectContaining({
-            currentPage: 1,
+            page: 1,
             pageSize: 10,
-            totalCount: expect.any(Number),
+            totalItems: expect.any(Number),
             totalPages: expect.any(Number),
             hasNextPage: expect.any(Boolean),
-            hasPrevPage: expect.any(Boolean),
+            hasPreviousPage: expect.any(Boolean),
           }),
         })
       );
@@ -304,7 +304,7 @@ describe('Users Controller (integration)', () => {
       expect(res.status).toBe(200);
       expect(res.body.pagination).toEqual(
         expect.objectContaining({
-          currentPage: 2,
+          page: 2,
           pageSize: 5,
         })
       );
@@ -335,10 +335,10 @@ describe('Users Controller (integration)', () => {
       const res = await request(app).get('/api/v1/users?page=1&pageSize=10');
 
       expect(res.status).toBe(200);
-      expect(res.body.pagination.totalCount).toBeGreaterThanOrEqual(0);
+      expect(res.body.pagination.totalItems).toBeGreaterThanOrEqual(0);
       expect(res.body.pagination.totalPages).toBeGreaterThanOrEqual(0);
       expect(typeof res.body.pagination.hasNextPage).toBe('boolean');
-      expect(typeof res.body.pagination.hasPrevPage).toBe('boolean');
+      expect(typeof res.body.pagination.hasPreviousPage).toBe('boolean');
     });
 
     it('should return empty array when no users exist', async () => {
@@ -350,7 +350,7 @@ describe('Users Controller (integration)', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data).toEqual([]);
-      expect(res.body.pagination.totalCount).toBe(0);
+      expect(res.body.pagination.totalItems).toBe(0);
       expect(res.body.pagination.totalPages).toBe(0);
     });
   });

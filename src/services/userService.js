@@ -1,5 +1,4 @@
 // services/userService.js
-const { minioClient, bucketName } = require('../utils/minioClient');
 const createLogger = require('../utils/logger');
 const {
   ValidationError,
@@ -7,8 +6,12 @@ const {
   ConflictError,
   InternalServerError,
 } = require('../utils/customErrors');
-const path = require('path');
-const { User } = require('../models');
+const {
+  uploadProfilePicture: uploadProfilePictureImage,
+  extractObjectKeyFromUrl,
+  deleteImage,
+} = require('../utils/imageUploader');
+const { User, Skill } = require('../models');
 const bcrypt = require('bcrypt');
 
 const logger = createLogger('USER_SERVICE');
@@ -29,28 +32,14 @@ const uploadProfilePicture = async (
   mimeType = 'image/jpeg'
 ) => {
   try {
-    logger.info(`Uploading profile picture for user ${user.id} using: ${originalFileName}`);
-
-    // Extract file extension (file already validated by multer middleware)
-    const fileExtension = path.extname(originalFileName).toLowerCase().replace('.', '');
-
-    // If user has an existing profile picture, delete it (fire and forget)
-    if (user.profilePicture) {
-      const oldKey = user.profilePicture.split('/').pop();
-      // Fire and forget - don't wait for deletion to complete
-      deleteFile(oldKey);
-    }
-
-    // Generate unique file name
-    const fileName = `profile_picture_${user.id}_${Date.now()}.${fileExtension}`;
-
-    // Upload to MinIO
-    await minioClient.putObject(bucketName, fileName, fileBuffer, fileBuffer.length, {
-      'Content-Type': mimeType,
+    // Upload image using unified image uploader
+    const fileUrl = await uploadProfilePictureImage({
+      fileBuffer,
+      originalFileName,
+      mimeType,
+      userId: user.id,
+      oldImageUrl: user.profilePicture,
     });
-
-    // Generate file URL
-    const fileUrl = `${bucketName}/${fileName}`;
 
     // Update user in database
     await user.update({
@@ -147,12 +136,10 @@ const deleteUserAccount = async (userId, reason) => {
     }
 
     // Collect all user-owned MinIO objects (profile picture + cover image, etc.)
-    let objectKey = '';
     if (user.profilePicture) {
-      objectKey = extractObjectKeyFromUrl(user.profilePicture);
-
-      // Delete files from MinIO
-      deleteFile(objectKey);
+      const objectKey = extractObjectKeyFromUrl(user.profilePicture);
+      // Delete files from MinIO (fire and forget)
+      deleteImage(objectKey, 'profile picture');
     }
 
     await user.destroy();
@@ -211,24 +198,6 @@ const changeUserPassword = async (user, currentPassword, newPassword) => {
   }
 };
 
-const extractObjectKeyFromUrl = (url) => {
-  if (!url) return null;
-  const parts = url.split('/');
-  return parts[parts.length - 1];
-};
-
-// delete object from s3 bucket
-const deleteFile = (key) => {
-  minioClient
-    .removeObject(bucketName, key)
-    .then(() => {
-      logger.info(`Old profile picture deleted: ${key}`);
-    })
-    .catch((error) => {
-      logger.warn(`Failed to delete old profile picture: ${error.message}`);
-    });
-};
-
 /**
  * Get all users with pagination
  * @param {Object} paginationOptions - Pagination options { page, pageSize }
@@ -248,14 +217,22 @@ const getAllUsers = async (paginationOptions = {}) => {
         attributes: { exclude: ['password'] }, // Exclude password from response
         limit: parseInt(pageSize, 10),
         offset: parseInt(offset, 10),
-        order: [['createdAt', 'DESC']], // Order by newest first
+        order: [['createdAt', 'DESC']], // Order by newest first,
+        include: [
+          {
+            model: Skill,
+            as: 'skills',
+            attributes: { exclude: ['createdBy'] }, // Exclude createdBy from skill objects
+            through: { attributes: [] }, // Exclude join table attributes
+          },
+        ],
       }),
     ]);
 
     // Calculate pagination metadata
     const totalPages = Math.ceil(totalCount / pageSize);
     const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
+    const hasPreviousPage = page > 1;
 
     logger.info(`Retrieved ${users.length} users (page ${page} of ${totalPages})`);
 
@@ -263,12 +240,12 @@ const getAllUsers = async (paginationOptions = {}) => {
       success: true,
       data: users,
       pagination: {
-        currentPage: parseInt(page, 10),
+        page: parseInt(page, 10),
         pageSize: parseInt(pageSize, 10),
-        totalCount,
+        totalItems: totalCount,
         totalPages,
         hasNextPage,
-        hasPrevPage,
+        hasPreviousPage,
       },
     };
   } catch (error) {
@@ -380,6 +357,7 @@ const getUserSkills = async (user) => {
         {
           model: Skill,
           as: 'skills',
+          attributes: { exclude: ['createdBy'] },
           through: { attributes: [] }, // Exclude join table attributes
         },
       ],

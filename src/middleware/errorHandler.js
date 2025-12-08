@@ -122,9 +122,17 @@ const errorHandler = (err, req, res, _next) => {
   if (err.name && err.name.includes('Multer')) {
     const multerError = handleMulterError(err);
     error = { ...error, ...multerError };
+    // Ensure message is an array
+    error.message = Array.isArray(error.message) ? error.message : [error.message];
   } else if (err.name && err.name.includes('Sequelize')) {
     const sequelizeError = handleSequelizeError(err);
     error = { ...error, ...sequelizeError };
+    // Ensure message is an array
+    if (sequelizeError.errors && Array.isArray(sequelizeError.errors)) {
+      error.message = sequelizeError.errors;
+    } else {
+      error.message = Array.isArray(error.message) ? error.message : [error.message];
+    }
   } else if (
     err.name &&
     (err.name === 'JsonWebTokenError' ||
@@ -133,6 +141,8 @@ const errorHandler = (err, req, res, _next) => {
   ) {
     const jwtError = handleJWTError(err);
     error = { ...error, ...jwtError };
+    // Ensure message is an array
+    error.message = Array.isArray(error.message) ? error.message : [error.message];
   } else if (err instanceof AppError) {
     // Custom application errors (including UnauthorizedError with custom messages)
     error = {
@@ -140,11 +150,23 @@ const errorHandler = (err, req, res, _next) => {
       message: err.message,
       success: false,
     };
+    
+    // Include multiple validation errors as an array in the message field
+    if (err.name === 'ValidationError' && err.errors && err.errors.length > 0) {
+      // Set message as an array of error messages
+      error.message = err.errors;
+    } else {
+      // For non-validation errors, wrap single message in an array
+      error.message = [err.message];
+    }
+  } else {
+    // For any other errors, ensure message is an array
+    error.message = Array.isArray(error.message) ? error.message : [error.message];
   }
 
   // Don't expose internal errors in production
   if (error.statusCode === 500 && process.env.NODE_ENV === 'production') {
-    error.message = 'An unexpected error occurred';
+    error.message = ['An unexpected error occurred'];
   }
 
   // Build response object

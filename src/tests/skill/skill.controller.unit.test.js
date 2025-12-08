@@ -38,19 +38,26 @@ jest.mock('../../middleware/errorHandler', () => ({
 }));
 
 // -------------------------------------------------------
-// STEP 4: Mock validator module
+// STEP 4: Mock validator schemas (Joi schemas)
 // -------------------------------------------------------
-const mockValidate = jest.fn();
-jest.mock('../../utils/index', () => ({
-  validate: (...args) => mockValidate(...args),
-}));
-
-// utils/validator — we override paginationQuerySchema
+const mockCreateSkillValidate = jest.fn();
+const mockUpdateSkillValidate = jest.fn();
+const mockBatchCreateSkillsValidate = jest.fn();
 const mockPaginationQueryValidate = jest.fn();
+
 jest.mock('../../utils/validator', () => {
   const actual = jest.requireActual('../../utils/validator');
   return {
     ...actual,
+    createSkillSchema: {
+      validate: (...args) => mockCreateSkillValidate(...args),
+    },
+    updateSkillSchema: {
+      validate: (...args) => mockUpdateSkillValidate(...args),
+    },
+    batchCreateSkillsSchema: {
+      validate: (...args) => mockBatchCreateSkillsValidate(...args),
+    },
     paginationQuerySchema: {
       validate: (...args) => mockPaginationQueryValidate(...args),
     },
@@ -110,12 +117,12 @@ describe('SKILL_CONTROLLER', () => {
         success: true,
         data: [{ id: 'skill-1', name: 'JavaScript' }],
         pagination: {
-          currentPage: 1,
+          page: 1,
           pageSize: 10,
-          totalCount: 1,
+          totalItems: 1,
           totalPages: 1,
           hasNextPage: false,
-          hasPrevPage: false,
+          hasPreviousPage: false,
         },
       };
 
@@ -123,7 +130,7 @@ describe('SKILL_CONTROLLER', () => {
 
       await getAllSkillsController(req, res);
 
-      expect(mockPaginationQueryValidate).toHaveBeenCalledWith(req.query);
+      expect(mockPaginationQueryValidate).toHaveBeenCalledWith(req.query, { abortEarly: false });
       expect(mockGetAllSkills).toHaveBeenCalledWith({ page: 1, pageSize: 10 });
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
@@ -146,12 +153,12 @@ describe('SKILL_CONTROLLER', () => {
         success: true,
         data: [],
         pagination: {
-          currentPage: 1,
+          page: 1,
           pageSize: 10,
-          totalCount: 0,
+          totalItems: 0,
           totalPages: 0,
           hasNextPage: false,
-          hasPrevPage: false,
+          hasPreviousPage: false,
         },
       };
 
@@ -225,9 +232,9 @@ describe('SKILL_CONTROLLER', () => {
       });
       const res = mockResponse();
 
-      mockValidate.mockReturnValue({
-        _value: { name: 'Python', description: 'Programming language' },
-        errorResponse: null,
+      mockCreateSkillValidate.mockReturnValue({
+        error: null,
+        value: { name: 'Python', description: 'Programming language' },
       });
 
       const mockSkill = {
@@ -241,7 +248,10 @@ describe('SKILL_CONTROLLER', () => {
 
       await createSkillController(req, res);
 
-      expect(mockValidate).toHaveBeenCalled();
+      expect(mockCreateSkillValidate).toHaveBeenCalledWith(
+        { name: 'Python', description: 'Programming language' },
+        { abortEarly: false }
+      );
       expect(mockCreateSkill).toHaveBeenCalledWith(
         { name: 'Python', description: 'Programming language' },
         'admin-123'
@@ -260,9 +270,11 @@ describe('SKILL_CONTROLLER', () => {
       });
       const res = mockResponse();
 
-      mockValidate.mockReturnValue({
-        _value: null,
-        errorResponse: { message: 'Skill name must be at least 2 characters long' },
+      mockCreateSkillValidate.mockReturnValue({
+        error: {
+          details: [{ message: 'Skill name must be at least 2 characters long' }],
+        },
+        value: null,
       });
 
       await expect(createSkillController(req, res)).rejects.toThrow(ValidationError);
@@ -286,14 +298,14 @@ describe('SKILL_CONTROLLER', () => {
       });
       const res = mockResponse();
 
-      mockValidate.mockReturnValue({
-        _value: {
+      mockBatchCreateSkillsValidate.mockReturnValue({
+        error: null,
+        value: {
           skills: [
             { name: 'Python', description: 'Language' },
             { name: 'JavaScript', description: 'Language' },
           ],
         },
-        errorResponse: null,
       });
 
       const mockResult = {
@@ -335,11 +347,11 @@ describe('SKILL_CONTROLLER', () => {
       });
       const res = mockResponse();
 
-      mockValidate.mockReturnValue({
-        _value: {
+      mockBatchCreateSkillsValidate.mockReturnValue({
+        error: null,
+        value: {
           skills: [{ name: 'Python' }, { name: 'JavaScript' }],
         },
-        errorResponse: null,
       });
 
       const mockResult = {
@@ -372,11 +384,11 @@ describe('SKILL_CONTROLLER', () => {
       });
       const res = mockResponse();
 
-      mockValidate.mockReturnValue({
-        _value: {
+      mockBatchCreateSkillsValidate.mockReturnValue({
+        error: null,
+        value: {
           skills: [{ name: 'Python' }],
         },
-        errorResponse: null,
       });
 
       const mockResult = {
@@ -408,9 +420,11 @@ describe('SKILL_CONTROLLER', () => {
       });
       const res = mockResponse();
 
-      mockValidate.mockReturnValue({
-        _value: null,
-        errorResponse: { message: 'At least one skill must be provided' },
+      mockBatchCreateSkillsValidate.mockReturnValue({
+        error: {
+          details: [{ message: 'At least one skill must be provided' }],
+        },
+        value: null,
       });
 
       await expect(batchCreateSkillsController(req, res)).rejects.toThrow(ValidationError);
@@ -429,9 +443,9 @@ describe('SKILL_CONTROLLER', () => {
       });
       const res = mockResponse();
 
-      mockValidate.mockReturnValue({
-        _value: { name: 'TypeScript' },
-        errorResponse: null,
+      mockUpdateSkillValidate.mockReturnValue({
+        error: null,
+        value: { name: 'TypeScript' },
       });
 
       const mockSkill = {
@@ -460,9 +474,11 @@ describe('SKILL_CONTROLLER', () => {
       });
       const res = mockResponse();
 
-      mockValidate.mockReturnValue({
-        _value: null,
-        errorResponse: { message: 'At least one field must be provided' },
+      mockUpdateSkillValidate.mockReturnValue({
+        error: {
+          details: [{ message: 'At least one field must be provided' }],
+        },
+        value: null,
       });
 
       await expect(updateSkillController(req, res)).rejects.toThrow(ValidationError);
@@ -476,9 +492,9 @@ describe('SKILL_CONTROLLER', () => {
       });
       const res = mockResponse();
 
-      mockValidate.mockReturnValue({
-        _value: { name: 'New Name' },
-        errorResponse: null,
+      mockUpdateSkillValidate.mockReturnValue({
+        error: null,
+        value: { name: 'New Name' },
       });
 
       mockUpdateSkill.mockRejectedValue(new NotFoundError('Skill not found'));

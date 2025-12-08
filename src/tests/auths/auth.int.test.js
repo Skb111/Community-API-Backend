@@ -78,7 +78,7 @@ describe('POST /api/v1/auth/** (Testcontainers)', () => {
         .send({ fullname: 'John Doe', email: 'john@yahoo.com', password: 'password123' });
 
       expect(res.status).toBe(409);
-      expect(res.body.message).toBe('Email already registered.');
+      expect(res.body.message[0]).toBe('Email already registered.');
     });
 
     it('should fail with invalid email format', async () => {
@@ -114,7 +114,7 @@ describe('POST /api/v1/auth/** (Testcontainers)', () => {
         .send({ email: 'johnCena@example.com', password: 'password123' });
 
       expect(res.status).toBe(401);
-      expect(res.body.message).toBe('Invalid credentials.');
+      expect(res.body.message[0]).toBe('Invalid credentials.');
     });
 
     it('should fail with wrong password', async () => {
@@ -123,7 +123,7 @@ describe('POST /api/v1/auth/** (Testcontainers)', () => {
         .send({ email: 'john@yahoo.com', password: 'wrongpass' });
 
       expect(res.status).toBe(401);
-      expect(res.body.message).toBe('Invalid credentials.');
+      expect(res.body.message[0]).toBe('Invalid credentials.');
     });
   });
 
@@ -141,19 +141,21 @@ describe('POST /api/v1/auth/** (Testcontainers)', () => {
       expect(otpStore[testUserEmail]).toHaveLength(6);
     });
 
-    it('should return 200 even if user email does not exist', async () => {
+    it('should return 404 when user email does not exist', async () => {
       const res = await request(app)
         .post('/api/v1/auth/forgot-password')
         .send({ email: 'nonexistent@example.com' });
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message[0]).toBe('User with this email does not exist');
     });
 
     it('should return 400 if email is missing', async () => {
       const res = await request(app).post('/api/v1/auth/forgot-password').send({});
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toBe('Validation failed');
+      expect(res.body.message[0]).toContain('required');
     });
   });
 
@@ -182,14 +184,14 @@ describe('POST /api/v1/auth/** (Testcontainers)', () => {
 
       expect(res.status).toBe(400);
       expect(res.body).toHaveProperty('success', false);
-      expect(res.body.message).toMatch(/Invalid or expired OTP/i);
+      expect(res.body.message[0]).toBe('Invalid or expired OTP');
     });
 
     it('should return 400 if required fields are missing', async () => {
       const res = await request(app).post('/api/v1/auth/verify-otp').send({ email: testUserEmail });
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toBe('Validation failed');
+      expect(res.body.message[0]).toContain('required');
     });
 
     it('should return 400 for non-existent email', async () => {
@@ -199,7 +201,7 @@ describe('POST /api/v1/auth/** (Testcontainers)', () => {
 
       expect(res.status).toBe(400);
       expect(res.body).toHaveProperty('success', false);
-      expect(res.body.message).toMatch(/Invalid or expired OTP/i);
+      expect(res.body.message[0]).toContain('Invalid or expired OTP');
     });
   });
 
@@ -229,7 +231,8 @@ describe('POST /api/v1/auth/** (Testcontainers)', () => {
         .send({ email: testUserEmail });
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toBe('Validation failed');
+      expect(res.body.message).toBeInstanceOf(Array);
+      expect(res.body.message[0]).toContain('required');
     });
 
     it('should return 404 for non-existent email', async () => {
@@ -240,7 +243,7 @@ describe('POST /api/v1/auth/** (Testcontainers)', () => {
 
       expect(res.status).toBe(404);
       expect(res.body).toHaveProperty('success', false);
-      expect(res.body.message).toMatch(/User not found/i);
+      expect(res.body.message[0]).toMatch(/User not found/i);
     });
   });
 
@@ -265,7 +268,7 @@ describe('POST /api/v1/auth/** (Testcontainers)', () => {
       const res = await request(app).post('/api/v1/auth/refresh'); // no agent → no cookies
 
       expect(res.status).toBe(401);
-      expect(res.body.message).toBe('Refresh token missing');
+      expect(res.body.message[0]).toBe('Refresh token missing');
     });
 
     it('should return 401 if refresh token is invalid', async () => {
@@ -277,7 +280,7 @@ describe('POST /api/v1/auth/** (Testcontainers)', () => {
       const res = await invalidAgent.post('/api/v1/auth/refresh');
 
       expect(res.status).toBe(401);
-      expect(res.body.message).toBe('Refresh token missing');
+      expect(res.body.message[0]).toBe('Refresh token missing');
     });
 
     it('should return 401 if user is deleted (token valid but user gone)', async () => {
@@ -287,7 +290,7 @@ describe('POST /api/v1/auth/** (Testcontainers)', () => {
       const res = await agent.post('/api/v1/auth/refresh');
 
       expect(res.status).toBe(401);
-      expect(res.body.message).toBe('User not found');
+      expect(res.body.message[0]).toBe('User not found');
     });
 
     it('should return 401 if refresh token is expired', async () => {
@@ -316,7 +319,7 @@ describe('POST /api/v1/auth/** (Testcontainers)', () => {
       const res = await expiredAgent.post('/api/v1/auth/refresh');
 
       expect(res.status).toBe(401);
-      expect(res.body.message).toBe('Invalid or expired refresh token');
+      expect(res.body.message[0]).toBe('Invalid or expired refresh token');
     });
   });
 });

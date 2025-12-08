@@ -20,9 +20,39 @@ jest.mock('../../services/emailService', () => ({
   sendOtpEmail: jest.fn(),
 }));
 
-jest.mock('../../utils/index', () => ({
-  validate: jest.fn(),
+// Mock asyncHandler (transparent in tests)
+jest.mock('../../middleware/errorHandler', () => ({
+  asyncHandler: (fn) => fn,
 }));
+
+// Mock validator schemas (Joi schemas)
+const mockSignupValidate = jest.fn();
+const mockSigninValidate = jest.fn();
+const mockForgotPasswordValidate = jest.fn();
+const mockVerifyOtpValidate = jest.fn();
+const mockResetPasswordValidate = jest.fn();
+
+jest.mock('../../utils/validator', () => {
+  const actual = jest.requireActual('../../utils/validator');
+  return {
+    ...actual,
+    signupSchema: {
+      validate: (...args) => mockSignupValidate(...args),
+    },
+    signinSchema: {
+      validate: (...args) => mockSigninValidate(...args),
+    },
+    forgotPasswordSchema: {
+      validate: (...args) => mockForgotPasswordValidate(...args),
+    },
+    verifyOtpSchema: {
+      validate: (...args) => mockVerifyOtpValidate(...args),
+    },
+    resetPasswordSchema: {
+      validate: (...args) => mockResetPasswordValidate(...args),
+    },
+  };
+});
 
 const mockSetAuthCookies = jest.fn();
 jest.mock('../../utils/cookies', () => ({
@@ -53,9 +83,9 @@ const {
   deleteOtpForEmail,
 } = require('../../services/otpService');
 const { sendOtpEmail } = require('../../services/emailService');
-const Validator = require('../../utils/index');
 const authService = require('../../services/authService');
 const authController = require('../../controllers/authController');
+const { ValidationError } = require('../../utils/customErrors');
 
 // Helper for mock response
 const mockResponse = () => {
@@ -79,9 +109,9 @@ describe('AuthController', () => {
       };
       const res = mockResponse();
 
-      Validator.validate.mockReturnValue({
-        _value: { fullname: 'John Doe', email: 'john@example.com', password: 'password123' },
-        errorResponse: null,
+      mockSignupValidate.mockReturnValue({
+        error: null,
+        value: { fullname: 'John Doe', email: 'john@example.com', password: 'password123' },
       });
       authService.signup.mockResolvedValue({
         success: true,
@@ -91,24 +121,30 @@ describe('AuthController', () => {
 
       await authController.signup(req, res);
 
+      expect(mockSignupValidate).toHaveBeenCalledWith(
+        { fullname: 'John Doe', email: 'john@example.com', password: 'password123' },
+        { abortEarly: false }
+      );
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith({ success: true, message: 'ok' });
     });
 
-    it('should return 400 on validation error', async () => {
+    it('should throw ValidationError on validation error', async () => {
       const req = { body: { fullname: '', email: 'bademail', password: '123' } };
       const res = mockResponse();
 
-      Validator.validate.mockReturnValue({
-        errorResponse: { success: false, message: 'Validation failed' },
+      mockSignupValidate.mockReturnValue({
+        error: {
+          details: [
+            { message: 'FullName is required' },
+            { message: 'Email must be a valid email address' },
+            { message: 'Password must be at least 8 characters long' },
+          ],
+        },
+        value: null,
       });
 
-      await authController.signup(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ success: false, message: 'Validation failed' })
-      );
+      await expect(authController.signup(req, res)).rejects.toThrow(ValidationError);
     });
   });
 
@@ -118,55 +154,63 @@ describe('AuthController', () => {
       const req = { body: { email: 'john@example.com', password: 'password123' } };
       const res = mockResponse();
 
-      Validator.validate.mockReturnValue({
-        _value: { email: 'john@example.com', password: 'password123' },
-        errorResponse: null,
+      mockSigninValidate.mockReturnValue({
+        error: null,
+        value: { email: 'john@example.com', password: 'password123' },
       });
       authService.signin.mockResolvedValue({ success: true, message: 'ok' });
 
       await authController.signin(req, res);
 
+      expect(mockSigninValidate).toHaveBeenCalledWith(
+        { email: 'john@example.com', password: 'password123' },
+        { abortEarly: false }
+      );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({ success: true, message: 'ok' });
     });
 
-    it('should return 400 on validation error', async () => {
+    it('should throw ValidationError on validation error', async () => {
       const req = { body: { email: 'notanemail', password: '123' } };
       const res = mockResponse();
 
-      Validator.validate.mockReturnValue({
-        errorResponse: { success: false, message: 'Validation failed' },
+      mockSigninValidate.mockReturnValue({
+        error: {
+          details: [
+            { message: 'Email must be a valid email address' },
+            { message: 'Password must be at least 8 characters long' },
+          ],
+        },
+        value: null,
       });
 
-      await authController.signin(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ success: false, message: 'Validation failed' })
-      );
+      await expect(authController.signin(req, res)).rejects.toThrow(ValidationError);
     });
   });
 
   // ---------------- FORGOT PASSWORD ----------------
   describe('forgotPassword', () => {
-    it('should send OTP and return 200 even if email does not exist', async () => {
+    it('should throw NotFoundError when user does not exist', async () => {
       const req = { body: { email: 'john@example.com' } };
       const res = mockResponse();
 
-      Validator.validate.mockReturnValue({
-        _value: { email: 'john@example.com' },
-        errorResponse: null,
+      mockForgotPasswordValidate.mockReturnValue({
+        error: null,
+        value: { email: 'john@example.com' },
       });
       authService.findUserByEmail.mockResolvedValue(null); // user not found
 
-      await authController.forgotPassword(req, res);
+      await expect(authController.forgotPassword(req, res)).rejects.toThrow(
+        'User with this email does not exist'
+      );
 
+      expect(mockForgotPasswordValidate).toHaveBeenCalledWith(
+        { email: 'john@example.com' },
+        { abortEarly: false }
+      );
       expect(authService.findUserByEmail).toHaveBeenCalledWith('john@example.com');
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({
-        success: true,
-        message: 'An OTP has been sent to your email successfully',
-      });
+      expect(res.status).not.toHaveBeenCalled();
+      expect(res.json).not.toHaveBeenCalled();
     });
 
     it('should generate and send OTP when user exists', async () => {
@@ -176,9 +220,9 @@ describe('AuthController', () => {
       const mockUser = { id: 1, email: 'user@example.com' };
       const mockOtp = '123456';
 
-      Validator.validate.mockReturnValue({
-        _value: { email: 'user@example.com' },
-        errorResponse: null,
+      mockForgotPasswordValidate.mockReturnValue({
+        error: null,
+        value: { email: 'user@example.com' },
       });
       authService.findUserByEmail.mockResolvedValue(mockUser);
       generateOtp.mockReturnValue(mockOtp);
@@ -199,66 +243,57 @@ describe('AuthController', () => {
       );
     });
 
-    it('should handle internal errors gracefully', async () => {
-      const req = { body: { email: 'john@example.com' } };
+    it('should throw ValidationError on validation error', async () => {
+      const req = { body: { email: 'invalid-email' } };
       const res = mockResponse();
 
-      Validator.validate.mockReturnValue({
-        _value: { email: 'john@example.com' },
-        errorResponse: null,
+      mockForgotPasswordValidate.mockReturnValue({
+        error: {
+          details: [{ message: 'Email must be a valid email address' }],
+        },
+        value: null,
       });
-      authService.findUserByEmail.mockRejectedValue(new Error('DB error'));
 
-      await authController.forgotPassword(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({
-        success: false,
-        message: 'Internal server error',
-      });
+      await expect(authController.forgotPassword(req, res)).rejects.toThrow(ValidationError);
     });
   });
 
   // verify otp
   describe('verifyOtp', () => {
-    it('should return 400 when validation fails', async () => {
+    it('should throw ValidationError when validation fails', async () => {
       const req = { body: { email: 'invalid-email', otp: '123456' } };
       const res = mockResponse();
 
-      Validator.validate.mockReturnValue({
-        errorResponse: { success: false, message: 'Validation failed' },
+      mockVerifyOtpValidate.mockReturnValue({
+        error: {
+          details: [{ message: 'Email must be a valid email address' }],
+        },
+        value: null,
       });
 
-      await authController.verifyOtp(req, res);
-
-      expect(Validator.validate).toHaveBeenCalledWith(expect.anything(), req.body);
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({ success: false, message: 'Validation failed' });
+      await expect(authController.verifyOtp(req, res)).rejects.toThrow(ValidationError);
       expect(getOtpForEmail).not.toHaveBeenCalled();
     });
 
-    it('should return 400 when OTP is invalid or expired', async () => {
+    it('should throw ValidationError when OTP is invalid or expired', async () => {
       const req = { body: { email: 'john@example.com', otp: '000000' } };
       const res = mockResponse();
 
-      Validator.validate.mockReturnValue({
-        _value: {
+      mockVerifyOtpValidate.mockReturnValue({
+        error: null,
+        value: {
           email: 'john@example.com',
           otp: '000000',
         },
-        errorResponse: null,
       });
       getOtpForEmail.mockResolvedValue(null); // Expired or not found
 
-      await authController.verifyOtp(req, res);
-
-      expect(Validator.validate).toHaveBeenCalledWith(expect.anything(), req.body);
+      await expect(authController.verifyOtp(req, res)).rejects.toThrow(ValidationError);
+      expect(mockVerifyOtpValidate).toHaveBeenCalledWith(
+        { email: 'john@example.com', otp: '000000' },
+        { abortEarly: false }
+      );
       expect(getOtpForEmail).toHaveBeenCalledWith('john@example.com');
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        success: false,
-        message: 'Invalid or expired OTP',
-      });
       expect(deleteOtpForEmail).not.toHaveBeenCalled();
     });
 
@@ -266,19 +301,22 @@ describe('AuthController', () => {
       const req = { body: { email: 'john@example.com', otp: '123456' } };
       const res = mockResponse();
 
-      Validator.validate.mockReturnValue({
-        _value: {
+      mockVerifyOtpValidate.mockReturnValue({
+        error: null,
+        value: {
           email: 'john@example.com',
           otp: '123456',
         },
-        errorResponse: null,
       });
       getOtpForEmail.mockResolvedValue('123456');
       deleteOtpForEmail.mockResolvedValue();
 
       await authController.verifyOtp(req, res);
 
-      expect(Validator.validate).toHaveBeenCalledWith(expect.anything(), req.body);
+      expect(mockVerifyOtpValidate).toHaveBeenCalledWith(
+        { email: 'john@example.com', otp: '123456' },
+        { abortEarly: false }
+      );
       expect(getOtpForEmail).toHaveBeenCalledWith('john@example.com');
       expect(deleteOtpForEmail).toHaveBeenCalledWith('john@example.com');
       expect(res.status).toHaveBeenCalledWith(200);
@@ -286,31 +324,6 @@ describe('AuthController', () => {
         success: true,
         message: 'Verified otp successfully',
       });
-    });
-
-    it('should handle unexpected errors gracefully', async () => {
-      const req = { body: { email: 'john@example.com', otp: '123456' } };
-      const res = mockResponse();
-
-      Validator.validate.mockReturnValue({
-        _value: {
-          email: 'john@example.com',
-          otp: '123456',
-        },
-        errorResponse: null,
-      });
-      getOtpForEmail.mockRejectedValue(new Error('Something went wrong'));
-
-      await authController.verifyOtp(req, res);
-
-      expect(Validator.validate).toHaveBeenCalledWith(expect.anything(), req.body);
-      expect(getOtpForEmail).toHaveBeenCalledWith('john@example.com');
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({
-        success: false,
-        message: 'Internal server error',
-      });
-      expect(deleteOtpForEmail).not.toHaveBeenCalled();
     });
   });
 
@@ -325,18 +338,24 @@ describe('AuthController', () => {
       };
       const res = mockResponse();
 
-      Validator.validate.mockReturnValue({
-        _value: {
+      mockResetPasswordValidate.mockReturnValue({
+        error: null,
+        value: {
           email: 'john@example.com',
           new_password: 'newPassword123',
         },
-        errorResponse: null,
       });
       mockAuthService.resetPassword.mockResolvedValue(true);
 
       await authController.resetPassword(req, res);
 
-      expect(Validator.validate).toHaveBeenCalledWith(expect.anything(), req.body);
+      expect(mockResetPasswordValidate).toHaveBeenCalledWith(
+        {
+          email: 'john@example.com',
+          new_password: 'newPassword123',
+        },
+        { abortEarly: false }
+      );
       expect(mockAuthService.resetPassword).toHaveBeenCalledWith({
         email: 'john@example.com',
         newPassword: 'newPassword123',
@@ -348,7 +367,7 @@ describe('AuthController', () => {
       });
     });
 
-    it('should return 400 when validation fails', async () => {
+    it('should throw ValidationError when validation fails', async () => {
       const req = {
         body: {
           email: 'invalid-email',
@@ -357,28 +376,21 @@ describe('AuthController', () => {
       };
       const res = mockResponse();
 
-      Validator.validate.mockReturnValue({
-        errorResponse: {
-          success: false,
-          message: 'Validation failed',
-          errors: ['Email must be a valid email address', 'New password is required'],
+      mockResetPasswordValidate.mockReturnValue({
+        error: {
+          details: [
+            { message: 'Email must be a valid email address' },
+            { message: 'New password is required' },
+          ],
         },
+        value: null,
       });
 
-      await authController.resetPassword(req, res);
-
-      expect(Validator.validate).toHaveBeenCalledWith(expect.anything(), req.body);
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          success: false,
-          message: 'Validation failed',
-        })
-      );
+      await expect(authController.resetPassword(req, res)).rejects.toThrow(ValidationError);
       expect(mockAuthService.resetPassword).not.toHaveBeenCalled();
     });
 
-    it('should return 404 when user is not found', async () => {
+    it('should propagate service errors', async () => {
       const req = {
         body: {
           email: 'nonexistent@example.com',
@@ -387,99 +399,19 @@ describe('AuthController', () => {
       };
       const res = mockResponse();
 
-      Validator.validate.mockReturnValue({
-        _value: {
+      mockResetPasswordValidate.mockReturnValue({
+        error: null,
+        value: {
           email: 'nonexistent@example.com',
           new_password: 'newPassword123',
         },
-        errorResponse: null,
       });
 
       const error = new Error('User not found');
       error.statusCode = 404;
       mockAuthService.resetPassword.mockRejectedValue(error);
 
-      await authController.resetPassword(req, res);
-
-      expect(Validator.validate).toHaveBeenCalledWith(expect.anything(), req.body);
-      expect(mockAuthService.resetPassword).toHaveBeenCalledWith({
-        email: 'nonexistent@example.com',
-        newPassword: 'newPassword123',
-      });
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({
-        success: false,
-        message: 'User not found',
-      });
-    });
-
-    it('should return 401 when current password is incorrect', async () => {
-      const req = {
-        body: {
-          email: 'john@example.com',
-          new_password: 'newPassword123',
-        },
-      };
-      const res = mockResponse();
-
-      Validator.validate.mockReturnValue({
-        _value: {
-          email: 'john@example.com',
-          new_password: 'newPassword123',
-        },
-        errorResponse: null,
-      });
-
-      const error = new Error('Current password is incorrect');
-      error.statusCode = 401;
-      mockAuthService.resetPassword.mockRejectedValue(error);
-
-      await authController.resetPassword(req, res);
-
-      expect(Validator.validate).toHaveBeenCalledWith(expect.anything(), req.body);
-      expect(mockAuthService.resetPassword).toHaveBeenCalledWith({
-        email: 'john@example.com',
-        newPassword: 'newPassword123',
-      });
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({
-        success: false,
-        message: 'Current password is incorrect',
-      });
-    });
-
-    it('should return 500 when an unexpected error occurs', async () => {
-      const req = {
-        body: {
-          email: 'john@example.com',
-          new_password: 'newPassword123',
-        },
-      };
-      const res = mockResponse();
-
-      Validator.validate.mockReturnValue({
-        _value: {
-          email: 'john@example.com',
-          new_password: 'newPassword123',
-        },
-        errorResponse: null,
-      });
-
-      const error = new Error('Database connection error');
-      mockAuthService.resetPassword.mockRejectedValue(error);
-
-      await authController.resetPassword(req, res);
-
-      expect(Validator.validate).toHaveBeenCalledWith(expect.anything(), req.body);
-      expect(mockAuthService.resetPassword).toHaveBeenCalledWith({
-        email: 'john@example.com',
-        newPassword: 'newPassword123',
-      });
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({
-        success: false,
-        message: 'Database connection error',
-      });
+      await expect(authController.resetPassword(req, res)).rejects.toThrow('User not found');
     });
   });
 
@@ -525,22 +457,17 @@ describe('AuthController', () => {
       expect(res.status).not.toHaveBeenCalled(); // 200 by default
     });
 
-    it('should return 401 when refresh token cookie is missing', async () => {
+    it('should throw UnauthorizedError when refresh token cookie is missing', async () => {
       const req = { cookies: {} };
       const res = mockResponse();
 
-      await authController.refresh(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({
-        success: false,
-        message: 'Refresh token missing',
-      });
+      const { UnauthorizedError } = require('../../utils/customErrors');
+      await expect(authController.refresh(req, res)).rejects.toThrow(UnauthorizedError);
       expect(authService.refresh).not.toHaveBeenCalled();
       expect(mockSetAuthCookies).not.toHaveBeenCalled();
     });
 
-    it('should return 401 when refresh token is invalid or expired', async () => {
+    it('should propagate service errors', async () => {
       const req = {
         cookies: { refresh_token: 'invalid-token' },
       };
@@ -550,51 +477,10 @@ describe('AuthController', () => {
       error.statusCode = 401;
       authService.refresh.mockRejectedValue(error);
 
-      await authController.refresh(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({
-        success: false,
-        message: 'Invalid or expired refresh token',
-      });
+      await expect(authController.refresh(req, res)).rejects.toThrow(
+        'Invalid or expired refresh token'
+      );
       expect(mockSetAuthCookies).not.toHaveBeenCalled();
-    });
-
-    it('should return 401 when user is not found', async () => {
-      const req = {
-        cookies: { refresh_token: 'valid-but-user-deleted' },
-      };
-      const res = mockResponse();
-
-      const error = new Error('User not found');
-      error.statusCode = 401;
-      authService.refresh.mockRejectedValue(error);
-
-      await authController.refresh(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({
-        success: false,
-        message: 'User not found',
-      });
-    });
-
-    it('should return 500 on unexpected service error', async () => {
-      const req = {
-        cookies: { refresh_token: 'valid-token' },
-      };
-      const res = mockResponse();
-
-      const error = new Error('Database connection failed');
-      authService.refresh.mockRejectedValue(error);
-
-      await authController.refresh(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({
-        success: false,
-        message: 'Database connection failed',
-      });
     });
   });
 });

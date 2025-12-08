@@ -17,7 +17,6 @@ const {
   paginationQuerySchema,
   addSkillToUserSchema,
 } = require('../utils/validator');
-const Validator = require('../utils/index');
 const { clearAuthCookies } = require('../utils/cookies');
 
 const logger = createLogger('USER_CONTROLLER');
@@ -53,41 +52,37 @@ const updateProfilePicture = asyncHandler(async (req, res) => {
 // PATCH new user
 // PATCH /api/v1/user/profile
 const updateProfile = asyncHandler(async (req, res) => {
-  try {
-    const { _value, errorResponse } = Validator.validate(updateProfileSchema, req.body);
-    if (errorResponse) return res.status(400).json(errorResponse);
+  const body = req.body || {};
+  const { error, value } = updateProfileSchema.validate(body, { abortEarly: false });
 
-    const result = await updateProfileData(req.user, _value);
-
-    logger.info(`Profile update successful for userId=${req.user.id}`);
-    return res.status(200).json(result);
-  } catch (err) {
-    logger.error(`updateProfile failed for userId=${req.user?.id} - ${err.message}`);
-    const status = err.statusCode || 500;
-    return res.status(status).json({ success: false, message: err.message });
+  if (error) {
+    const errorMessages = error.details.map((detail) => detail.message);
+    logger.error(
+      `validation error occurred when updating user profile reason=${errorMessages.join(', ')}`
+    );
+    throw new ValidationError('Validation failed', errorMessages);
   }
+
+  const result = await updateProfileData(req.user, value);
+
+  logger.info(`Profile update successful for userId=${req.user.id}`);
+  return res.status(200).json(result);
 });
 
 const getProfile = asyncHandler(async (req, res) => {
-  try {
-    // Get user with skills
-    const skills = await getUserSkills(req.user);
-    const { password, ...user } = req.user.dataValues;
+  // Get user with skills
+  const skills = await getUserSkills(req.user);
+  const { password, ...user } = req.user.dataValues;
 
-    logger.info(
-      `Get Profile successful for userId=${req.user.dataValues.id}, ${password.slice(0, 1)}`
-    );
+  logger.info(
+    `Get Profile successful for userId=${req.user.dataValues.id}, ${password.slice(0, 1)}`
+  );
 
-    return res.status(200).json({
-      success: true,
-      message: 'Get Profile successfully',
-      user: { ...user, skills },
-    });
-  } catch (err) {
-    logger.error(`get user profile failed for userId=${req.user?.id} - ${err.message}`);
-    const status = err.statusCode || 500;
-    return res.status(status).json({ success: false, message: err.message });
-  }
+  return res.status(200).json({
+    success: true,
+    message: 'Get Profile successfully',
+    user: { ...user, skills },
+  });
 });
 
 /**
@@ -124,9 +119,13 @@ const changePassword = asyncHandler(async (req, res) => {
   const body = req.body || {};
 
   // Validate body with Joi schema
-  const { error, value } = changePasswordSchema.validate(body);
+  const { error, value } = changePasswordSchema.validate(body, { abortEarly: false });
   if (error) {
-    throw new ValidationError(error.details[0].message);
+    const errorMessages = error.details.map((detail) => detail.message);
+    logger.error(
+      `validation error occurred when changing password reason=${errorMessages.join(', ')}`
+    );
+    throw new ValidationError('Validation failed', errorMessages);
   }
 
   const { currentPassword, newPassword } = value;
@@ -146,9 +145,13 @@ const changePassword = asyncHandler(async (req, res) => {
  */
 const getAllUsersController = asyncHandler(async (req, res) => {
   // Validate query parameters
-  const { error, value } = paginationQuerySchema.validate(req.query);
+  const { error, value } = paginationQuerySchema.validate(req.query, { abortEarly: false });
   if (error) {
-    throw new ValidationError(error.details[0].message);
+    const errorMessages = error.details.map((detail) => detail.message);
+    logger.error(
+      `validation error occurred when retrieving users reason=${errorMessages.join(', ')}`
+    );
+    throw new ValidationError('Validation failed', errorMessages);
   }
 
   const { page, pageSize } = value;
@@ -172,9 +175,13 @@ const getAllUsersController = asyncHandler(async (req, res) => {
  */
 const addSkillToUserController = asyncHandler(async (req, res) => {
   // Validate request body
-  const { error, value } = addSkillToUserSchema.validate(req.body);
+  const { error, value } = addSkillToUserSchema.validate(req.body, { abortEarly: false });
   if (error) {
-    throw new ValidationError(error.details[0].message);
+    const errorMessages = error.details.map((detail) => detail.message);
+    logger.error(
+      `validation error occurred when adding skill to user reason=${errorMessages.join(', ')}`
+    );
+    throw new ValidationError('Validation failed', errorMessages);
   }
 
   const { skillId } = value;

@@ -1,6 +1,5 @@
 // controllers/authController.js
 const authService = require('../services/authService');
-const Validator = require('../utils/index');
 const {
   signupSchema,
   signinSchema,
@@ -16,6 +15,8 @@ const {
 } = require('../services/otpService');
 const { sendOtpEmail } = require('../services/emailService');
 const { setAuthCookies, clearAuthCookies } = require('../utils/cookies');
+const { asyncHandler } = require('../middleware/errorHandler');
+const { ValidationError, UnauthorizedError, NotFoundError } = require('../utils/customErrors');
 const createLogger = require('../utils/logger');
 const cookiesConfig = require('../utils/authCookieConfig');
 
@@ -23,171 +24,169 @@ const logger = createLogger('AUTH_CONTROLLER');
 
 class AuthController {
   // POST /api/v1/auth/signup
-  async signup(req, res) {
-    try {
-      const { _value, errorResponse } = Validator.validate(signupSchema, req.body);
-      if (errorResponse) return res.status(400).json(errorResponse);
+  signup = asyncHandler(async (req, res) => {
+    const body = req.body || {};
+    const { error, value } = signupSchema.validate(body, { abortEarly: false });
 
-      const result = await authService.signup(_value);
-      setAuthCookies(res, result.tokens);
-
-      logger.info(`Signup success for email=${_value.email}`);
-      return res.status(201).json({
-        message: result.message,
-        success: result.success,
-      });
-    } catch (err) {
-      logger.error(`Signup failed for email=${req.body.email} - ${err.message}`);
-      const status = err.statusCode || 500;
-      return res.status(status).json({ success: false, message: err.message });
+    if (error) {
+      const errorMessages = error.details.map((detail) => detail.message);
+      logger.error(`validation error occurred when signing up reason=${errorMessages.join(', ')}`);
+      throw new ValidationError('Validation failed', errorMessages);
     }
-  }
+
+    const result = await authService.signup(value);
+    setAuthCookies(res, result.tokens);
+
+    logger.info(`Signup success for email=${value.email}`);
+    return res.status(201).json({
+      message: result.message,
+      success: result.success,
+    });
+  });
 
   // POST /api/v1/auth/signin
-  async signin(req, res) {
-    try {
-      const { _value, errorResponse } = Validator.validate(signinSchema, req.body);
-      if (errorResponse) return res.status(400).json(errorResponse);
+  signin = asyncHandler(async (req, res) => {
+    const body = req.body || {};
+    const { error, value } = signinSchema.validate(body, { abortEarly: false });
 
-      const result = await authService.signin(_value);
-      setAuthCookies(res, result.tokens);
-
-      logger.info(`Signin success for email=${_value.email}`);
-
-      return res.status(200).json({
-        message: result.message,
-        success: result.success,
-      });
-    } catch (err) {
-      logger.error(`Signin failed for email=${req.body.email} - ${err.message}`);
-      const status = err.statusCode || 500;
-      return res.status(status).json({ success: false, message: err.message });
+    if (error) {
+      const errorMessages = error.details.map((detail) => detail.message);
+      logger.error(`validation error occurred when signing in reason=${errorMessages.join(', ')}`);
+      throw new ValidationError('Validation failed', errorMessages);
     }
-  }
+
+    const result = await authService.signin(value);
+    setAuthCookies(res, result.tokens);
+
+    logger.info(`Signin success for email=${value.email}`);
+
+    return res.status(200).json({
+      message: result.message,
+      success: result.success,
+    });
+  });
 
   /** POST /api/v1/auth/refresh */
-  async refresh(req, res) {
-    try {
-      const refreshToken = req.cookies[cookiesConfig.REFRESH_COOKIE];
-      if (!refreshToken) {
-        return res.status(401).json({ success: false, message: 'Refresh token missing' });
-      }
-
-      const result = await authService.refresh(refreshToken);
-      setAuthCookies(res, result.tokens);
-
-      logger.info(`Refresh token operation successful`);
-      return res.json({
-        success: true,
-        message: result.message,
-      });
-    } catch (err) {
-      logger.error(`Refresh failed – ${err.message}`);
-      const status = err.statusCode || 500;
-      return res.status(status).json({ success: false, message: err.message });
+  refresh = asyncHandler(async (req, res) => {
+    const refreshToken = req.cookies[cookiesConfig.REFRESH_COOKIE];
+    if (!refreshToken) {
+      throw new UnauthorizedError('Refresh token missing');
     }
-  }
+
+    const result = await authService.refresh(refreshToken);
+    setAuthCookies(res, result.tokens);
+
+    logger.info(`Refresh token operation successful`);
+    return res.json({
+      success: true,
+      message: result.message,
+    });
+  });
 
   // POST /api/v1/auth/forgot-password
-  async forgotPassword(req, res) {
-    const email = (req.body.email || '').toLowerCase();
-    try {
-      const { _value, errorResponse } = Validator.validate(forgotPasswordSchema, req.body);
-      if (errorResponse) return res.status(400).json(errorResponse);
+  forgotPassword = asyncHandler(async (req, res) => {
+    const body = req.body || {};
+    const { error, value } = forgotPasswordSchema.validate(body, { abortEarly: false });
 
-      // NB: we do not reveal whether an email exists
-      const user = await authService.findUserByEmail(email);
-      if (user) {
-        // generate & save OTP, then send email
-        const otp = generateOtp();
-        await saveOtpForEmail(email, otp);
-        await sendOtpEmail(email, otp);
-      }
-
-      logger.info(`Forgot password requested for ${email}`);
-      return res.status(200).json({
-        success: true,
-        message: 'An OTP has been sent to your email successfully',
-      });
-    } catch (err) {
-      logger.error(`forgotPassword error for ${email} - ${err.message}`);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
+    if (error) {
+      const errorMessages = error.details.map((detail) => detail.message);
+      logger.error(
+        `validation error occurred when requesting forgot password reason=${errorMessages.join(', ')}`
+      );
+      throw new ValidationError('Validation failed', errorMessages);
     }
-  }
+
+    const email = value.email.toLowerCase();
+
+    // Check if user exists
+    const user = await authService.findUserByEmail(email);
+    if (!user) {
+      throw new NotFoundError('User with this email does not exist');
+    }
+
+    // Generate & save OTP, then send email
+    const otp = generateOtp();
+    await saveOtpForEmail(email, otp);
+    await sendOtpEmail(email, otp);
+
+    logger.info(`Forgot password requested for ${email}`);
+    return res.status(200).json({
+      success: true,
+      message: 'An OTP has been sent to your email successfully',
+    });
+  });
 
   // POST /api/v1/auth/verify-otp
-  async verifyOtp(req, res) {
+  verifyOtp = asyncHandler(async (req, res) => {
     logger.info('otp code verification starts...');
-    try {
-      const { _value, errorResponse } = Validator.validate(verifyOtpSchema, req.body);
-      if (errorResponse) return res.status(400).json(errorResponse);
+    const body = req.body || {};
+    const { error, value } = verifyOtpSchema.validate(body, { abortEarly: false });
 
-      const email = _value.email.toLowerCase();
-      const otpProvided = _value.otp;
-
-      const storedOtp = await getOtpForEmail(email);
-
-      if (!storedOtp || storedOtp !== otpProvided) {
-        logger.info(`invalid or expired otp attempt for ${email}`);
-        return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
-      }
-
-      // remove OTP
-      await deleteOtpForEmail(email);
-
-      logger.info(`Otp code verified successfully for ${email}`);
-      return res.status(200).json({ success: true, message: 'Verified otp successfully' });
-    } catch (err) {
-      // do not log password or OTP
-      logger.error(`verifyOtp error - ${err.message}`);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
+    if (error) {
+      const errorMessages = error.details.map((detail) => detail.message);
+      logger.error(
+        `validation error occurred when verifying OTP reason=${errorMessages.join(', ')}`
+      );
+      throw new ValidationError('Validation failed', errorMessages);
     }
-  }
+
+    const email = value.email.toLowerCase();
+    const otpProvided = value.otp;
+
+    const storedOtp = await getOtpForEmail(email);
+
+    if (!storedOtp || storedOtp !== otpProvided) {
+      logger.info(`invalid or expired otp attempt for ${email}`);
+      throw new ValidationError('Invalid or expired OTP');
+    }
+
+    // remove OTP
+    await deleteOtpForEmail(email);
+
+    logger.info(`Otp code verified successfully for ${email}`);
+    return res.status(200).json({ success: true, message: 'Verified otp successfully' });
+  });
 
   // POST /api/v1/auth/reset-password
-  async resetPassword(req, res) {
+  resetPassword = asyncHandler(async (req, res) => {
     logger.info('reset password operation starts...');
-    try {
-      const { _value, errorResponse } = Validator.validate(resetPasswordSchema, req.body);
-      if (errorResponse) return res.status(400).json(errorResponse);
+    const body = req.body || {};
+    const { error, value } = resetPasswordSchema.validate(body, { abortEarly: false });
 
-      const email = _value.email.toLowerCase();
-      const newPassword = _value.new_password;
-
-      await authService.resetPassword({
-        email,
-        newPassword,
-      });
-
-      logger.info(`Password reset successfully for ${email}`);
-      return res.status(200).json({
-        success: true,
-        message: 'Password reset successfully',
-      });
-    } catch (err) {
-      logger.error(`resetPassword error for ${req.body.email} - ${err.message}`);
-      const status = err.statusCode || 500;
-      return res.status(status).json({ success: false, message: err.message });
+    if (error) {
+      const errorMessages = error.details.map((detail) => detail.message);
+      logger.error(
+        `validation error occurred when resetting password reason=${errorMessages.join(', ')}`
+      );
+      throw new ValidationError('Validation failed', errorMessages);
     }
-  }
+
+    const email = value.email.toLowerCase();
+    const newPassword = value.new_password;
+
+    await authService.resetPassword({
+      email,
+      newPassword,
+    });
+
+    logger.info(`Password reset successfully for ${email}`);
+    return res.status(200).json({
+      success: true,
+      message: 'Password reset successfully',
+    });
+  });
 
   // POST /api/v1/auth/signout
-  async signOut(req, res) {
-    try {
-     
+  signOut = asyncHandler(async (req, res) => {
     clearAuthCookies(res); // uses the same cookie options and names from the utils/cookies.js
-      
+
     logger.info('User signed out successfully.');
 
-      return res.status(200).json({
-        success: true,
-        message: 'Signed out successfully',
-      });
-    } catch (err) {
-      logger.error(`Signout error - ${err.message}`);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
-    }
-  }
+    return res.status(200).json({
+      success: true,
+      message: 'Signed out successfully',
+    });
+  });
 }
 
 module.exports = new AuthController();

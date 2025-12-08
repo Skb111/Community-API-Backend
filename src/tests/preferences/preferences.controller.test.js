@@ -121,7 +121,7 @@ describe('preferenceController', () => {
 
       await updateMyPreferences(req, res);
 
-      expect(mockValidate).toHaveBeenCalledWith(reqBody);
+      expect(mockValidate).toHaveBeenCalledWith(reqBody, { abortEarly: false });
       expect(mockUpdateUserPreferences).toHaveBeenCalledWith('user-123', validatedValue);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
@@ -137,12 +137,17 @@ describe('preferenceController', () => {
       const res = mockResponse();
 
       mockValidate.mockReturnValueOnce({
-        error: { details: [{ message: 'appearance must be one of: light, dark, system' }] },
+        error: {
+          details: [
+            { message: 'appearance must be one of: light, dark, system' },
+            { message: 'language must be a valid ISO 639-1 code' },
+          ],
+        },
         value: null,
       });
 
       await expect(updateMyPreferences(req, res)).rejects.toThrow(ValidationError);
-      expect(mockValidate).toHaveBeenCalledWith(reqBody);
+      expect(mockValidate).toHaveBeenCalledWith(reqBody, { abortEarly: false });
       expect(mockUpdateUserPreferences).not.toHaveBeenCalled();
       expect(res.status).not.toHaveBeenCalled();
       expect(res.json).not.toHaveBeenCalled();
@@ -170,7 +175,7 @@ describe('preferenceController', () => {
       await updateMyPreferences(req, res);
 
       // body should be normalized to {}
-      expect(mockValidate).toHaveBeenCalledWith({});
+      expect(mockValidate).toHaveBeenCalledWith({}, { abortEarly: false });
       expect(mockUpdateUserPreferences).toHaveBeenCalledWith('user-123', validatedValue);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
