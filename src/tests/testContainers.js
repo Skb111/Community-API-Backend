@@ -88,8 +88,8 @@ class TestContainersManager {
     process.env.REDIS_URL = `redis://${redisHost}:${redisPort}`;
 
     // MinIO
-    process.env.MINIO_ENDPOINT = minioHost;
-    process.env.MINIO_PORT = String(minioApiPort);
+    process.env.MINIO_HOST = minioHost;
+    process.env.MINIO_API_PORT = String(minioApiPort);
     process.env.MINIO_USE_SSL = 'false';
     process.env.MINIO_ROOT_USER = 'minioadmin';
     process.env.MINIO_ROOT_PASSWORD = 'minioadmin';
