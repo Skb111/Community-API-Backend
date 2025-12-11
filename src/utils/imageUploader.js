@@ -1,5 +1,5 @@
 // utils/imageUploader.js
-const { minioClient, bucketName } = require('./minioClient');
+const { upload, delete: deleteBlob } = require("../blobStorage/blobAdapter");
 const createLogger = require('./logger');
 const path = require('path');
 const { InternalServerError } = require('./customErrors');
@@ -14,14 +14,11 @@ const logger = createLogger('IMAGE_UPLOADER');
 const deleteImage = (key, imageType = 'image') => {
   if (!key) return;
 
-  minioClient
-    .removeObject(bucketName, key)
-    .then(() => {
-      logger.info(`Old ${imageType} deleted: ${key}`);
-    })
-    .catch((error) => {
-      logger.warn(`Failed to delete old ${imageType}: ${error.message}`);
-    });
+  deleteBlob(key)
+    .then(() => logger.info(`Old ${imageType} deleted: ${key}`))
+    .catch((err) =>
+      logger.warn(`Failed to delete old ${imageType}: ${err.message}`)
+    );
 };
 
 /**
@@ -75,13 +72,8 @@ const uploadImage = async ({
     // Generate unique file name
     const fileName = `${imageType}_${entityId}_${Date.now()}.${fileExtension}`;
 
-    // Upload to MinIO
-    await minioClient.putObject(bucketName, fileName, fileBuffer, fileBuffer.length, {
-      'Content-Type': mimeType,
-    });
-
     // Generate file URL
-    const fileUrl = `${bucketName}/${fileName}`;
+    const fileUrl = await upload(fileName, fileBuffer, mimeType);
 
     logger.info(`${imageTypeLabel} uploaded successfully for ${imageType} ${entityId}`);
 

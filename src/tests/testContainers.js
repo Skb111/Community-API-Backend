@@ -119,7 +119,7 @@ class TestContainersManager {
    * Initialize MinIO client and bucket
    */
   async initializeMinio() {
-    this.clients.minio = require('../utils/minioClient');
+    this.clients.minio = require('../blobStorage/minioClient');
     this.clients.minio.initializeMinioClient();
     await this.clients.minio.initializeBucket();
 

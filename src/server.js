@@ -9,7 +9,15 @@ require('./db'); // Ensure DB connection is established
 
 const createLogger = require('./utils/logger');
 const logger = createLogger('SERVER');
-const { initializeBucket } = require('./utils/minioClient');
+
+// ENV-aware blob storage adapter
+const { isProduction } = require("./blobStorage/blobAdapter");
+
+// Only needed for development
+const { initializeBucket } = require("./blobStorage/minioClient");
+
+// Only needed for production
+const { ensureBucketExists } = require("./blobStorage/s3Client");
 
 const app = require('./app');
 const process = require('process');
@@ -22,13 +30,22 @@ logger.info('👉 Loaded DB config:', {
     : 'Not set',
 });
 
-// Initialize MinIO bucket on startup
+// Initialize storage bucket depending on environment
 (async () => {
   try {
-    await initializeBucket();
-    logger.info('✅ MinIO bucket initialized successfully');
+    if (isProduction) {
+      logger.info("🌐 Running in PRODUCTION using Supabase S3");
+      await ensureBucketExists();
+      logger.info("✅ Supabase S3 bucket is ready");
+    } else {
+      logger.info("🛠 Running in DEVELOPMENT using MinIO");
+      await initializeBucket();
+      logger.info("✅ MinIO bucket initialized successfully");
+    }
   } catch (error) {
-    logger.warn(`⚠️ Failed to initialize MinIO bucket: ${error.message}`);
+    logger.warn(
+      `⚠️ Failed to initialize storage bucket (${isProduction ? "S3" : "MinIO"}): ${error.message}`
+    );
   }
 })();
 
