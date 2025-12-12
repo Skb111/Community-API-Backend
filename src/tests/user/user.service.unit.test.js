@@ -13,7 +13,7 @@ const {
   removeSkillFromUser,
   getUserSkills,
 } = require('../../services/userService');
-const { minioClient } = require('../../utils/minioClient');
+const { minioClient } = require('../../blobStorage/minioClient');
 const { Skill } = require('../../models');
 const {
   InternalServerError,
@@ -23,7 +23,7 @@ const {
 } = require('../../utils/customErrors');
 
 // 🧠 Mock dependencies
-jest.mock('../../utils/minioClient', () => ({
+jest.mock('../../blobStorage/minioClient', () => ({
   minioClient: {
     putObject: jest.fn(),
     removeObject: jest.fn(),

@@ -30,7 +30,7 @@ if (process.env.NODE_ENV !== 'test') {
       await sequelize.authenticate();
       logger.info('✅ Connected to PostgreSQL via Sequelize');
     } catch (err) {
-      logger.warn('❌ Unable to connect:', err);
+      logger.warn(`❌ Unable to connect: ${err}`);
     }
   })();
 }
