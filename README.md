@@ -173,6 +173,40 @@ Run tests locally:
 ```bash
 npm test
 ```
+<!--  "Authentication docs" section  -->
+
+## Docs — Authentication & User Management
+
+Detailed docs for the Authentication & User Management epic live in the [docs](./docs/) folder:
+
+- [docs/architecture.md](./docs/architecture.md) — system overview and request lifecycle
+- [docs/database.md](./docs/database.md) — ERD and schema descriptions
+- [docs/api.md](./docs/api.md) — auth & user API endpoints with examples
+- [docs/security.md](./docs/security.md) — token lifecycle, password handling, secrets
+- [docs/contributing.md]() — branch, PR, linting and migrations
+
+Quickstart (local)
+1. Copy .env.example to .env and set DB credentials
+2. Start DB: docker compose up -d
+3. Run migrations:
+   - If using Prisma: npx prisma migrate dev
+   - Otherwise: npm run migrate
+4. Start server: npm run dev
+5. Use Postman / curl to hit POST /auth/signup and POST /auth/login
+
+Quickstart flow (mermaid)
+```mermaid
+flowchart LR
+  A[Developer machine] --> B["Docker Compose (Postgres)"]
+  B --> C[Run migrations]
+  C --> D["Start backend (npm run dev)"]
+  D --> E["Test endpoints (curl / Postman)"]
+```
+
+Notes:
+- If your project uses a different migration or dev start command, replace step 3 or 4 with your project's scripts.
+
+(If something fails, see [docs](./docs/) for detailed setup steps.)
 
 ## 🤝 Contributing
 
