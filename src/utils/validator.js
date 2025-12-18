@@ -298,6 +298,32 @@ const blogIdParamSchema = Joi.object({
   }),
 });
 
+const techSchema = Joi.object({
+  name: Joi.string().min(1).max(255).required().messages({
+    'string.base': 'Tech name must be a string',
+    'string.empty': 'Tech name cannot be empty',
+    'string.min': 'Tech name must be at least 1 character',
+    'string.max': 'Tech name cannot exceed 255 characters',
+    'any.required': 'Tech name is required',
+  }),
+  icon: Joi.string().uri().allow('', null).max(500).optional().messages({
+    'string.max': 'Icon path cannot exceed 500 characters',
+  }),
+  description: Joi.string().max(2000).allow('', null).optional().messages({
+    'string.max': 'Description cannot exceed 2000 characters',
+  }),
+});
+
+const createTechSchema = techSchema;
+const updateTechSchema = techSchema;
+
+// Add search query schema
+const techSearchQuerySchema = Joi.object({
+  page: Joi.number().integer().min(1).default(1),
+  pageSize: Joi.number().integer().min(1).max(100).default(10),
+  search: Joi.string().allow('').optional(),
+});
+
 module.exports = {
   signupSchema,
   signinSchema,
@@ -317,4 +343,7 @@ module.exports = {
   updateBlogSchema,
   blogQuerySchema,
   blogIdParamSchema,
+  createTechSchema,
+  updateTechSchema,
+  techSearchQuerySchema,
 };
