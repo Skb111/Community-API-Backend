@@ -324,6 +324,34 @@ const techSearchQuerySchema = Joi.object({
   search: Joi.string().allow('').optional(),
 });
 
+const batchCreateTechsSchema = Joi.array()
+  .items(
+    Joi.object({
+      name: Joi.string().min(1).max(255).required().messages({
+        'string.base': 'Tech name must be a string',
+        'string.empty': 'Tech name cannot be empty',
+        'string.min': 'Tech name must be at least 1 character',
+        'string.max': 'Tech name cannot exceed 255 characters',
+        'any.required': 'Tech name is required',
+      }),
+      icon: Joi.string().uri().allow('', null).max(500).optional().messages({
+        'string.max': 'Icon path cannot exceed 500 characters',
+      }),
+      description: Joi.string().max(2000).allow('', null).optional().messages({
+        'string.max': 'Description cannot exceed 2000 characters',
+      }),
+    })
+  )
+  .min(1)
+  .max(100) // Limit batch size to prevent abuse
+  .required()
+  .messages({
+    'array.base': 'Techs data must be an array',
+    'array.min': 'At least one tech is required',
+    'array.max': 'Cannot create more than 100 techs at once',
+    'any.required': 'Techs data is required',
+  });
+
 module.exports = {
   signupSchema,
   signinSchema,
@@ -346,4 +374,5 @@ module.exports = {
   createTechSchema,
   updateTechSchema,
   techSearchQuerySchema,
+  batchCreateTechsSchema,
 };

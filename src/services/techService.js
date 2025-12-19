@@ -4,6 +4,7 @@ const {
   NotFoundError,
   ConflictError,
   InternalServerError,
+  ForbiddenError,
 } = require('../utils/customErrors');
 const { Tech, sequelize, Sequelize } = require('../models');
 const {
@@ -18,6 +19,7 @@ const {
   getCachedTechNameLookup,
   cacheTechNameLookup,
 } = require('../cache/techCache');
+const { uploadTechIcon } = require('../utils/imageUploader');
 
 const logger = createLogger('TECH_SERVICE');
 const Op = Sequelize.Op; // Get the Op operator
@@ -113,7 +115,7 @@ const getTechById = async (techId) => {
       include: [
         {
           association: 'creator',
-          attributes: ['username', 'email', 'profilePicture'],
+          attributes: ['fullname', 'email', 'profilePicture'],
         },
       ],
     });
@@ -155,7 +157,7 @@ const createTech = async (techData, createdBy) => {
       // Cache hit - check if tech still exists
       const existingTech = await Tech.findByPk(existingTechId);
       if (existingTech) {
-        throw new ConflictError(`Tech with name "${name}" already exists`);
+        throw new ConflictError(`Tech with name ${name} already exists`);
       }
     } else {
       // Cache miss - check database
@@ -355,6 +357,194 @@ const searchTechs = async (searchTerm, limit = 10) => {
   }
 };
 
+/**
+ * Batch create multiple techs
+ * @param {Array} techsData - Array of tech data objects
+ * @param {string} createdBy - User ID of creator
+ * @returns {Object} Batch creation result with summary
+ */
+const batchCreateTechs = async (techsData, createdBy = null) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const created = [];
+    const skipped = [];
+    const errors = [];
+
+    for (let i = 0; i < techsData.length; i++) {
+      const techData = techsData[i];
+      try {
+        const { name, description, icon } = techData;
+        const normalizedName = name?.trim();
+
+        // Validate required fields
+        if (!normalizedName) {
+          errors.push({
+            index: i,
+            name: techData.name || `Item ${i}`,
+            error: 'Tech name is required',
+          });
+          continue;
+        }
+
+        // Check if tech already exists using cache first
+        const existingTechId = await getCachedTechNameLookup(normalizedName);
+        if (existingTechId) {
+          // Cache hit - check if tech still exists
+          const existingTech = await Tech.findByPk(existingTechId, { transaction });
+          if (existingTech) {
+            skipped.push({
+              index: i,
+              name: normalizedName,
+              reason: 'Tech with this name already exists',
+            });
+            continue;
+          }
+        } else {
+          // Cache miss - check database
+          const existingTech = await Tech.findOne({
+            where: { name: normalizedName },
+            transaction,
+          });
+          if (existingTech) {
+            // Cache the name lookup for future duplicate checks
+            await cacheTechNameLookup(normalizedName, existingTech.id);
+            skipped.push({
+              index: i,
+              name: normalizedName,
+              reason: 'Tech with this name already exists',
+            });
+            continue;
+          }
+        }
+
+        // Create the tech
+        const tech = await Tech.create(
+          {
+            name: normalizedName,
+            description: description?.trim() || null,
+            icon: icon || null,
+            createdBy,
+          },
+          { transaction }
+        );
+
+        // Cache the new tech
+        await cacheTech(tech.id, tech);
+        await cacheTechNameLookup(normalizedName, tech.id);
+
+        created.push(tech);
+      } catch (error) {
+        errors.push({
+          index: i,
+          name: techData.name || `Item ${i}`,
+          error: error.message,
+        });
+      }
+    }
+
+    // If any techs were created, invalidate caches
+    if (created.length > 0) {
+      await invalidateAllTechCaches();
+    }
+
+    await transaction.commit();
+
+    logger.info(
+      `Batch created ${created.length} techs, skipped ${skipped.length}, errors: ${errors.length} by user: ${createdBy}`
+    );
+
+    return {
+      success: true,
+      created,
+      skipped,
+      errors,
+      summary: {
+        total: techsData.length,
+        created: created.length,
+        skipped: skipped.length,
+        errors: errors.length,
+      },
+    };
+  } catch (error) {
+    await transaction.rollback();
+    logger.error(`Error in batch tech creation: ${error.message}`);
+    throw new InternalServerError('Failed to batch create techs');
+  }
+};
+
+/**
+ * Update tech icon by uploading a file
+ * @param {string} techId - Tech UUID
+ * @param {Buffer} fileBuffer - File buffer
+ * @param {string} originalFileName - Original file name
+ * @param {string} mimeType - File MIME type
+ * @param {string} updatedBy - User ID of updater
+ * @param {boolean} isAdmin - Whether the user is an admin (for permission check)
+ * @returns {Object} Updated tech object
+ */
+const updateTechIcon = async (
+  techId,
+  fileBuffer,
+  originalFileName,
+  mimeType,
+  updatedBy,
+  isAdmin = false
+) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    logger.info(`Updating icon for tech ${techId} by user ${updatedBy}`);
+
+    // Find the tech
+    const tech = await Tech.findByPk(techId, { transaction });
+    if (!tech) {
+      throw new NotFoundError('Tech not found');
+    }
+
+    // Permission check: Only admin or creator can update icon
+    if (!isAdmin && tech.createdBy !== updatedBy) {
+      throw new ForbiddenError('You do not have permission to update this tech icon');
+    }
+
+    // Upload new icon
+    const iconUrl = await uploadTechIcon({
+      fileBuffer,
+      originalFileName,
+      mimeType,
+      techId,
+      oldImageUrl: tech.icon,
+    });
+
+    // Update tech with new icon URL
+    tech.icon = iconUrl;
+    await tech.save({ transaction });
+
+    // Update caches
+    await cacheTech(techId, tech);
+    await invalidateAllTechCaches();
+
+    await transaction.commit();
+
+    logger.info(`Icon updated successfully for tech ${techId}`);
+
+    return tech;
+  } catch (error) {
+    await transaction.rollback();
+
+    if (
+      error instanceof NotFoundError ||
+      error instanceof ForbiddenError ||
+      error instanceof ValidationError
+    ) {
+      throw error;
+    }
+
+    logger.error(`Error updating icon for tech ${techId}: ${error.message}`, { error });
+    throw new InternalServerError(`Failed to update icon: ${error.message}`);
+  }
+};
+
 module.exports = {
   getAllTechs,
   getTechById,
@@ -362,4 +552,6 @@ module.exports = {
   updateTech,
   deleteTech,
   searchTechs,
+  updateTechIcon,
+  batchCreateTechs,
 };

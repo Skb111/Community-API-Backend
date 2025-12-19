@@ -9,7 +9,13 @@ const {
   deleteTech,
 } = require('../services/techService');
 const Validator = require('../utils/index');
-const { createTechSchema, updateTechSchema, techSearchQuerySchema } = require('../utils/validator');
+const {
+  createTechSchema,
+  updateTechSchema,
+  techSearchQuerySchema,
+  batchCreateTechsSchema,
+} = require('../utils/validator');
+const { batchCreateTechs, updateTechIcon } = require('../services/techService');
 
 const logger = createLogger('TECH_CONTROLLER');
 
@@ -126,10 +132,75 @@ const deleteTechController = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Batch create multiple techs
+ * @route POST /api/v1/techs/batch
+ * @access Private (Admin only)
+ */
+const batchCreateTechsController = asyncHandler(async (req, res) => {
+  // Validate request body
+  const { error, value } = batchCreateTechsSchema.validate(req.body, { abortEarly: false });
+  if (error) {
+    const errorMessages = error.details.map((detail) => detail.message);
+    logger.error(
+      `validation error occurred when batch creating techs reason=${errorMessages.join(', ')}`
+    );
+    throw new ValidationError('Validation failed', errorMessages);
+  }
+
+  // Set creator to current user
+  const createdBy = req.user?.id || null;
+  const result = await batchCreateTechs(value, createdBy);
+
+  logger.info(
+    `Batch created techs: ${result.summary.created} created, ${result.summary.skipped} skipped by user: ${createdBy}`
+  );
+
+  return res.status(201).json({
+    success: true,
+    message: 'Techs batch created successfully',
+    ...result,
+  });
+});
+
+/**
+ * Upload/update tech icon
+ * @route PATCH /api/v1/techs/:id/icon
+ * @access Private (Admin or creator only)
+ */
+const updateTechIconController = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Check if file was uploaded
+  if (!req.file) {
+    throw new ValidationError('Icon file is required');
+  }
+
+  // Get file info from multer
+  const { buffer, originalname, mimetype } = req.file;
+
+  // Set updater info
+  const updatedBy = req.user.id;
+  const isAdmin = req.user.hasRole('ADMIN') || req.user.hasRole('ROOT');
+
+  // Update tech icon
+  const tech = await updateTechIcon(id, buffer, originalname, mimetype, updatedBy, isAdmin);
+
+  logger.info(`Tech icon updated: ${id} - ${tech.name} by user: ${updatedBy}`);
+
+  return res.status(200).json({
+    success: true,
+    message: 'Tech icon updated successfully',
+    tech,
+  });
+});
+
 module.exports = {
   getAllTechsController,
   getTechByIdController,
   createTechController,
   updateTechController,
   deleteTechController,
+  batchCreateTechsController,
+  updateTechIconController,
 };

@@ -5,17 +5,13 @@ const {
   createTechController,
   updateTechController,
   deleteTechController,
+  updateTechIconController,
+  batchCreateTechsController,
 } = require('../controllers/techController');
 const { authenticateJWT, requireAdmin } = require('../middleware/authMiddleware');
+const { handleMulterUpload } = require('../middleware/uploadMiddleware');
 
 const router = express.Router();
-
-/**
- * @swagger
- * tags:
- *   name: Techs
- *   description: Technology catalog management
- */
 
 /**
  * @swagger
@@ -380,5 +376,163 @@ router.patch('/:id', authenticateJWT, requireAdmin, updateTechController);
  *         description: Forbidden - User is not an admin
  */
 router.delete('/:id', authenticateJWT, requireAdmin, deleteTechController);
+
+/**
+ * @swagger
+ * /api/v1/techs/batch:
+ *   post:
+ *     summary: Batch create multiple techs
+ *     description: Create multiple technology entries in one request (admin only).
+ *     tags: [Techs]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: array
+ *             items:
+ *               type: object
+ *               required:
+ *                 - name
+ *               properties:
+ *                 name:
+ *                   type: string
+ *                   example: "React"
+ *                 icon:
+ *                   type: string
+ *                   example: "bucketName/imageName.extension"
+ *                 description:
+ *                   type: string
+ *                   example: "JavaScript library for UIs"
+ *             example:
+ *               - name: "React"
+ *                 description: "JavaScript library for UIs"
+ *               - name: "Node.js"
+ *                 description: "JavaScript runtime"
+ *     responses:
+ *       201:
+ *         description: Techs batch created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Techs batch created successfully"
+ *                 created:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 skipped:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 errors:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 summary:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                       example: 2
+ *                     created:
+ *                       type: integer
+ *                       example: 2
+ *                     skipped:
+ *                       type: integer
+ *                       example: 0
+ *                     errors:
+ *                       type: integer
+ *                       example: 0
+ *       400:
+ *         description: Bad request - Invalid input data
+ *       401:
+ *         description: Unauthorized - Missing or invalid token
+ *       403:
+ *         description: Forbidden - User is not an admin
+ */
+router.post('/batch', authenticateJWT, requireAdmin, batchCreateTechsController);
+
+/**
+ * @swagger
+ * /api/v1/techs/{id}/icon:
+ *   patch:
+ *     summary: Upload/update tech icon
+ *     description: Upload a new icon for a technology (admin or creator only).
+ *     tags: [Techs]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Tech ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - icon
+ *             properties:
+ *               icon:
+ *                 type: string
+ *                 format: binary
+ *                 description: Icon image file (JPEG, PNG, GIF, WebP, SVG, max 5MB)
+ *     responses:
+ *       200:
+ *         description: Tech icon updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Tech icon updated successfully"
+ *                 tech:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     name:
+ *                       type: string
+ *                     icon:
+ *                       type: string
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *       400:
+ *         description: Bad request - Invalid file or missing file
+ *       401:
+ *         description: Unauthorized - Missing or invalid token
+ *       403:
+ *         description: Forbidden - User is not authorized to update this tech
+ *       404:
+ *         description: Tech not found
+ */
+router.patch(
+  '/:id/icon',
+  authenticateJWT,
+  requireAdmin,
+  handleMulterUpload('icon'),
+  updateTechIconController
+);
 
 module.exports = router;
