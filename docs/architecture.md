@@ -16,7 +16,7 @@ This epic provides authentication and user management features for the backend:
 ## System diagram
 ![System architecture](./assets/monolith_backend.png)
 
-If you prefer inline diagrams while the final SVG is added, here's a mermaid flowchart showing the system components:
+If you prefer inline diagrams while the final PNG is added, here's a mermaid flowchart showing the system components:
 
 ```mermaid
 flowchart LR

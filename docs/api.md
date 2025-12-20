@@ -12,9 +12,9 @@ All endpoints below assume JSON requests/responses unless noted otherwise.
 
 ```json
 {
-  "email": "user@example.com",
-  "password": "strong-password",
-  "name": "Full Name"
+  "fullname": "John Doe",
+  "email": "john@example.com",
+  "password": "password123"
 }
 ```
 
@@ -22,9 +22,8 @@ All endpoints below assume JSON requests/responses unless noted otherwise.
 
 ```json
 {
-  "id": "uuid",
-  "email": "user@example.com",
-  "is_verified": false
+  "success": true,
+  "message": "User registered successfully"
 }
 ```
 
@@ -36,8 +35,8 @@ All endpoints below assume JSON requests/responses unless noted otherwise.
 
 ```json
 {
-  "email": "user@example.com",
-  "password": "password"
+  "email": "john@example.com",
+  "password": "password123"
 }
 ```
 
@@ -45,9 +44,8 @@ All endpoints below assume JSON requests/responses unless noted otherwise.
 
 ```json
 {
-  "accessToken": "<jwt>",
-  "refreshToken": "<opaque-token>",
-  "expiresIn": 900
+  "success": true,
+  "message": "User signed in successfully"
 }
 ```
 
@@ -65,9 +63,8 @@ All endpoints below assume JSON requests/responses unless noted otherwise.
 
 ```json
 {
-  "accessToken": "<jwt>",
-  "refreshToken": "<new-opaque-token>",
-  "expiresIn": 900
+  "success": true,
+  "message": "Tokens refreshed"
 }
 ```
 
@@ -82,16 +79,27 @@ All endpoints below assume JSON requests/responses unless noted otherwise.
 
 ## User management
 
-### GET /users/me
+### GET /users/profile
 - Auth required: yes
 - Response 200:
 
 ```json
 {
-  "id": "uuid",
-  "email": "user@example.com",
-  "name": "Full Name",
-  "is_verified": true
+  "success": true,
+  "message": "Profile updated successfully",
+  "user": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "fullname": "Jane Doe",
+    "email": "jane.doe@example.com",
+    "role": "USER",
+    "skills": [
+      "skill-1",
+      "skill-2",
+      "skill-3"
+    ],
+    "createdAt": "2025-10-14T12:00:00.000Z",
+    "updatedAt": "2025-10-14T12:00:00.000Z"
+  }
 }
 ```
 
