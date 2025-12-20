@@ -3,34 +3,34 @@ const { Model } = require('sequelize');
 const { uuidv7 } = require('uuidv7');
 
 module.exports = (sequelize, DataTypes) => {
-  class Project extends Model {
+  class Learning extends Model {
     static associate(models) {
-      // Project creator
-      Project.belongsTo(models.User, {
+      // Learning creator
+      Learning.belongsTo(models.User, {
         foreignKey: 'createdBy',
         as: 'creator',
         onDelete: 'SET NULL',
       });
 
-      // Project contributors (many-to-many)
-      Project.belongsToMany(models.User, {
-        through: 'ProjectContributors',
-        foreignKey: 'projectId',
+      // Learning learners (many-to-many)
+      Learning.belongsToMany(models.User, {
+        through: 'LearningLearners',
+        foreignKey: 'learningId',
         otherKey: 'userId',
-        as: 'contributors',
+        as: 'learners',
       });
 
-      // Project techs (many-to-many)
-      Project.belongsToMany(models.Tech, {
-        through: 'ProjectTechs',
-        foreignKey: 'projectId',
+      // Learning techs (many-to-many)
+      Learning.belongsToMany(models.Tech, {
+        through: 'LearningTechs',
+        foreignKey: 'learningId',
         otherKey: 'techId',
         as: 'techs',
       });
     }
   }
 
-  Project.init(
+  Learning.init(
     {
       id: {
         type: DataTypes.UUID,
@@ -42,24 +42,44 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         validate: {
           notNull: {
-            msg: 'Project title is required',
+            msg: 'Learning title is required',
           },
           notEmpty: {
-            msg: 'Project title cannot be empty',
+            msg: 'Learning title cannot be empty',
           },
           len: {
             args: [1, 255],
-            msg: 'Project title must be between 1 and 255 characters',
+            msg: 'Learning title must be between 1 and 255 characters',
           },
         },
       },
       description: {
-        type: DataTypes.TEXT,
+        type: DataTypes.STRING,
         allowNull: true,
         validate: {
           len: {
-            args: [0, 2000],
-            msg: 'Description cannot exceed 2000 characters',
+            args: [0, 1000],
+            msg: 'Description cannot exceed 1000 characters',
+          },
+        },
+      },
+      period: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        validate: {
+          len: {
+            args: [0, 50],
+            msg: 'Period cannot exceed 50 characters',
+          },
+        },
+      },
+      link: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        validate: {
+          isUrl: {
+            args: true,
+            msg: 'Link must be a valid URL',
           },
         },
       },
@@ -70,16 +90,6 @@ module.exports = (sequelize, DataTypes) => {
           isUrl: {
             args: true,
             msg: 'Cover image must be a valid URL or storage path',
-          },
-        },
-      },
-      reportLink: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        validate: {
-          isUrl: {
-            args: true,
-            msg: 'Report link must be a valid URL',
           },
         },
       },
@@ -99,26 +109,26 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      modelName: 'Project',
-      tableName: 'Projects',
+      modelName: 'Learning',
+      tableName: 'Learnings',
       timestamps: true,
       paranoid: true,
       indexes: [
         {
-          name: 'projects_title_idx',
+          name: 'learnings_title_idx',
           fields: ['title'],
         },
         {
-          name: 'projects_created_by_idx',
+          name: 'learnings_created_by_idx',
           fields: ['createdBy'],
         },
         {
-          name: 'projects_featured_idx',
+          name: 'learnings_featured_idx',
           fields: ['featured'],
         },
       ],
     }
   );
 
-  return Project;
+  return Learning;
 };

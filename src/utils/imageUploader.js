@@ -1,5 +1,5 @@
 // utils/imageUploader.js
-const { upload, delete: deleteBlob } = require("../blobStorage/blobAdapter");
+const { upload, delete: deleteBlob } = require('../blobStorage/blobAdapter');
 const createLogger = require('./logger');
 const path = require('path');
 const { InternalServerError } = require('./customErrors');
@@ -16,9 +16,7 @@ const deleteImage = (key, imageType = 'image') => {
 
   deleteBlob(key)
     .then(() => logger.info(`Old ${imageType} deleted: ${key}`))
-    .catch((err) =>
-      logger.warn(`Failed to delete old ${imageType}: ${err.message}`)
-    );
+    .catch((err) => logger.warn(`Failed to delete old ${imageType}: ${err.message}`));
 };
 
 /**
@@ -55,10 +53,14 @@ const uploadImage = async ({
 }) => {
   try {
     if (!fileBuffer || !originalFileName || !imageType || !entityId) {
-      throw new Error('Missing required parameters: fileBuffer, originalFileName, imageType, and entityId are required');
+      throw new Error(
+        'Missing required parameters: fileBuffer, originalFileName, imageType, and entityId are required'
+      );
     }
 
-    logger.info(`Uploading ${imageTypeLabel} for ${imageType} ${entityId} using: ${originalFileName}`);
+    logger.info(
+      `Uploading ${imageTypeLabel} for ${imageType} ${entityId} using: ${originalFileName}`
+    );
 
     // Extract file extension (file already validated by multer middleware)
     const fileExtension = path.extname(originalFileName).toLowerCase().replace('.', '');
@@ -147,11 +149,39 @@ const uploadBlogCoverImage = async ({
   });
 };
 
+/**
+ * Convenience function for uploading tech icons
+ * @param {Object} options - Upload options
+ * @param {Buffer} options.fileBuffer - File buffer
+ * @param {string} options.originalFileName - Original file name
+ * @param {string} options.mimeType - File MIME type
+ * @param {string} options.techId - Tech ID
+ * @param {string} [options.oldImageUrl] - URL of old icon
+ * @returns {Promise<string>} Icon URL
+ */
+const uploadTechIcon = async ({
+  fileBuffer,
+  originalFileName,
+  mimeType = 'image/jpeg',
+  techId,
+  oldImageUrl = null,
+}) => {
+  return uploadImage({
+    fileBuffer,
+    originalFileName,
+    mimeType,
+    imageType: 'tech_icon',
+    entityId: techId,
+    oldImageUrl,
+    imageTypeLabel: 'tech icon',
+  });
+};
+
 module.exports = {
   uploadImage,
   uploadProfilePicture,
   uploadBlogCoverImage,
   deleteImage,
   extractObjectKeyFromUrl,
+  uploadTechIcon,
 };
-
