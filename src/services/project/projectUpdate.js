@@ -32,7 +32,7 @@ const updateCoverImage = async (project, fileBuffer, originalFileName, mimeType 
 /**
  * Update project techs
  */
-const updateProjectTechs = async (project, techIds = [], transaction) => {
+const updateProjectTechs = async (project, techIds, transaction) => {
   if (techIds === undefined) {
     return; // Field not provided, keep existing
   }
@@ -58,7 +58,7 @@ const updateProjectTechs = async (project, techIds = [], transaction) => {
 /**
  * Update project contributors
  */
-const updateProjectContributors = async (project, contributorIds = [], userId, transaction) => {
+const updateProjectContributors = async (project, contributorIds, userId, transaction) => {
   if (contributorIds === undefined) {
     return; // Field not provided, keep existing
   }
@@ -133,7 +133,7 @@ const updateProject = async (
     logger.info(`Updating project ${projectId} by user ${userId}`);
 
     // Handle cover image
-    let coverImageUrl = projectData.coverImage;
+    let coverImageUrl;
 
     if (fileBuffer && originalFileName && mimeType) {
       // Upload new cover image
