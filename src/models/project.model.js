@@ -9,24 +9,48 @@ module.exports = (sequelize, DataTypes) => {
       Project.belongsTo(models.User, {
         foreignKey: 'createdBy',
         as: 'creator',
-        onDelete: 'SET NULL',
+        onDelete: 'CASCADE',
       });
 
-      // Project contributors (many-to-many)
+      // Project techs (many-to-many)
+      Project.belongsToMany(models.Tech, {
+        through: models.ProjectTech,
+        foreignKey: 'projectId',
+        otherKey: 'techId',
+        as: 'techs',
+      });
+
+      // Project contributors (many-to-many with users)
       Project.belongsToMany(models.User, {
-        through: 'ProjectContributors',
+        through: models.ProjectContributor,
         foreignKey: 'projectId',
         otherKey: 'userId',
         as: 'contributors',
       });
 
-      // Project techs (many-to-many)
-      Project.belongsToMany(models.Tech, {
-        through: 'ProjectTechs',
+      // Project partners (many-to-many)
+      // Project.belongsToMany(models.Partner, {
+      //   through: models.ProjectPartner,
+      //   foreignKey: 'projectId',
+      //   otherKey: 'partnerId',
+      //   as: 'partners',
+      // });
+
+      // Direct associations for easier querying
+      Project.hasMany(models.ProjectTech, {
         foreignKey: 'projectId',
-        otherKey: 'techId',
-        as: 'techs',
+        as: 'projectTechs',
       });
+
+      Project.hasMany(models.ProjectContributor, {
+        foreignKey: 'projectId',
+        as: 'projectContributors',
+      });
+
+      // Project.hasMany(models.ProjectPartner, {
+      //   foreignKey: 'projectId',
+      //   as: 'projectPartners',
+      // });
     }
   }
 
@@ -58,30 +82,18 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         validate: {
           len: {
-            args: [0, 2000],
-            msg: 'Description cannot exceed 2000 characters',
+            args: [0, 5000],
+            msg: 'Description cannot exceed 5000 characters',
           },
         },
       },
       coverImage: {
         type: DataTypes.STRING,
         allowNull: true,
-        validate: {
-          isUrl: {
-            args: true,
-            msg: 'Cover image must be a valid URL or storage path',
-          },
-        },
       },
-      reportLink: {
+      repoLink: {
         type: DataTypes.STRING,
         allowNull: true,
-        validate: {
-          isUrl: {
-            args: true,
-            msg: 'Report link must be a valid URL',
-          },
-        },
       },
       featured: {
         type: DataTypes.BOOLEAN,
@@ -94,7 +106,7 @@ module.exports = (sequelize, DataTypes) => {
           model: 'Users',
           key: 'id',
         },
-        onDelete: 'SET NULL',
+        onDelete: 'CASCADE',
       },
     },
     {
