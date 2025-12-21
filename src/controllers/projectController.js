@@ -139,7 +139,7 @@ const getProject = asyncHandler(async (req, res) => {
 
 /**
  * Update an existing project
- * @route PUT /api/v1/projects/:id
+ * @route PATCH /api/v1/projects/:id
  * @access Private (Owner only)
  */
 const updateProjectPut = asyncHandler(async (req, res) => {

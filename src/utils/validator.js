@@ -371,11 +371,9 @@ const createProjectSchema = Joi.object({
   }),
   techs: Joi.array().items(Joi.string().uuid()).optional().messages({
     'array.base': 'Techs must be an array',
-    'string.guid': 'Tech ID must be a valid UUID',
   }),
   contributors: Joi.array().items(Joi.string().uuid()).optional().messages({
     'array.base': 'Contributors must be an array',
-    'string.guid': 'User ID must be a valid UUID',
   }),
 }).unknown(false); // Don't allow unknown fields
 
@@ -397,11 +395,9 @@ const updateProjectSchema = Joi.object({
   }),
   techs: Joi.array().items(Joi.string().uuid()).optional().messages({
     'array.base': 'Techs must be an array',
-    'string.guid': 'Tech ID must be a valid UUID',
   }),
   contributors: Joi.array().items(Joi.string().uuid()).optional().messages({
     'array.base': 'Contributors must be an array',
-    'string.guid': 'User ID must be a valid UUID',
   }),
 })
   .min(1)
@@ -423,9 +419,6 @@ const projectQuerySchema = Joi.object({
   createdBy: Joi.string().uuid().optional().messages({
     'string.guid': 'createdBy must be a valid UUID',
   }),
-  tech: Joi.string().uuid().optional().messages({
-    'string.guid': 'Tech must be a valid UUID',
-  }),
   featured: Joi.boolean().optional().messages({
     'boolean.base': 'Featured must be a boolean',
   }),
@@ -437,7 +430,6 @@ const projectQuerySchema = Joi.object({
 // Project ID Param Schema
 const projectIdParamSchema = Joi.object({
   id: Joi.string().uuid().required().messages({
-    'string.guid': 'Project ID must be a valid UUID',
     'any.required': 'Project ID is required',
   }),
 });
@@ -447,7 +439,6 @@ const manageTechsSchema = Joi.object({
   techIds: Joi.array().items(Joi.string().uuid()).min(1).required().messages({
     'array.base': 'techIds must be an array',
     'array.min': 'At least one tech ID is required',
-    'string.guid': 'Tech ID must be a valid UUID',
     'any.required': 'techIds is required',
   }),
 });
@@ -456,7 +447,6 @@ const manageContributorsSchema = Joi.object({
   userIds: Joi.array().items(Joi.string().uuid()).min(1).required().messages({
     'array.base': 'userIds must be an array',
     'array.min': 'At least one user ID is required',
-    'string.guid': 'User ID must be a valid UUID',
     'any.required': 'userIds is required',
   }),
 });

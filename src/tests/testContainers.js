@@ -130,8 +130,57 @@ class TestContainersManager {
    * Initialize database and sync models
    */
   async initializeDatabase() {
+    // Clear the require cache for models
+    Object.keys(require.cache).forEach((key) => {
+      if (key.includes('/models/')) {
+        delete require.cache[key];
+      }
+    });
+
     this.db = require('../models');
+
+    // Authenticate the connection first
+    await this.db.sequelize.authenticate();
+    console.log('✅ Database connection authenticated');
+
+    // Debug: Check if ProjectTech model has id defined
+    console.log(
+      'ProjectTech model attributes:',
+      Object.keys(this.db.ProjectTech?.rawAttributes || {})
+    );
+    console.log(
+      'ProjectContributor model attributes:',
+      Object.keys(this.db.ProjectContributor?.rawAttributes || {})
+    );
+
+    // Sync in a specific order to ensure junction tables are created correctly
+    // First, sync all regular tables
     await this.db.sequelize.sync({ force: true });
+
+    // Then explicitly sync junction tables to ensure they have the id column
+    await this.db.ProjectTech.sync({ force: true });
+    await this.db.ProjectContributor.sync({ force: true });
+
+    // Verify the schema after sync
+    const [projectTechCols] = await this.db.sequelize.query(`
+    SELECT column_name FROM information_schema.columns 
+    WHERE table_name = 'ProjectTechs' 
+    ORDER BY ordinal_position;
+  `);
+    console.log(
+      'ProjectTechs actual columns after sync:',
+      projectTechCols.map((c) => c.column_name)
+    );
+
+    const [projectContribCols] = await this.db.sequelize.query(`
+    SELECT column_name FROM information_schema.columns 
+    WHERE table_name = 'ProjectContributors' 
+    ORDER BY ordinal_position;
+  `);
+    console.log(
+      'ProjectContributors actual columns after sync:',
+      projectContribCols.map((c) => c.column_name)
+    );
 
     console.log('✅ Database initialized and synced');
   }
@@ -161,6 +210,12 @@ class TestContainersManager {
       USER: {
         fullname: 'Regular User',
         email: 'user@devbyte.io',
+        password: 'UserPassword123!',
+        role: 'USER',
+      },
+      USER_2: {
+        fullname: 'Another User',
+        email: 'user2@devbyte.io',
         password: 'UserPassword123!',
         role: 'USER',
       },
