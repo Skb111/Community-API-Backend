@@ -352,6 +352,105 @@ const batchCreateTechsSchema = Joi.array()
     'any.required': 'Techs data is required',
   });
 
+// Create Project Schema
+const createProjectSchema = Joi.object({
+  title: Joi.string().min(1).max(255).trim().required().messages({
+    'string.empty': 'Title is required',
+    'string.min': 'Title cannot be empty',
+    'string.max': 'Title must not exceed 255 characters',
+    'any.required': 'Title is required',
+  }),
+  description: Joi.string().max(5000).trim().allow('', null).optional().messages({
+    'string.max': 'Description must not exceed 5000 characters',
+  }),
+  repoLink: Joi.string().uri().trim().allow('', null).optional().messages({
+    'string.uri': 'Repository link must be a valid URL',
+  }),
+  featured: Joi.boolean().default(false).optional().messages({
+    'boolean.base': 'Featured must be a boolean',
+  }),
+  techs: Joi.array().items(Joi.string().uuid()).optional().messages({
+    'array.base': 'Techs must be an array',
+  }),
+  contributors: Joi.array().items(Joi.string().uuid()).optional().messages({
+    'array.base': 'Contributors must be an array',
+  }),
+}).unknown(false); // Don't allow unknown fields
+
+// Update Project Schema
+const updateProjectSchema = Joi.object({
+  title: Joi.string().min(1).max(255).trim().optional().messages({
+    'string.empty': 'Title cannot be empty',
+    'string.min': 'Title cannot be empty',
+    'string.max': 'Title must not exceed 255 characters',
+  }),
+  description: Joi.string().max(5000).trim().allow('', null).optional().messages({
+    'string.max': 'Description must not exceed 5000 characters',
+  }),
+  repoLink: Joi.string().uri().trim().allow('', null).optional().messages({
+    'string.uri': 'Repository link must be a valid URL',
+  }),
+  featured: Joi.boolean().optional().messages({
+    'boolean.base': 'Featured must be a boolean',
+  }),
+  techs: Joi.array().items(Joi.string().uuid()).optional().messages({
+    'array.base': 'Techs must be an array',
+  }),
+  contributors: Joi.array().items(Joi.string().uuid()).optional().messages({
+    'array.base': 'Contributors must be an array',
+  }),
+})
+  .min(1)
+  .messages({
+    'object.min': 'At least one field must be provided',
+  });
+
+// Query Schema for GET /projects
+const projectQuerySchema = Joi.object({
+  page: Joi.number().integer().min(1).default(1).messages({
+    'number.base': 'Page must be a number',
+    'number.min': 'Page must be at least 1',
+  }),
+  pageSize: Joi.number().integer().min(1).max(100).default(10).messages({
+    'number.base': 'Page size must be a number',
+    'number.min': 'Page size must be at least 1',
+    'number.max': 'Page size cannot exceed 100',
+  }),
+  createdBy: Joi.string().uuid().optional().messages({
+    'string.guid': 'createdBy must be a valid UUID',
+  }),
+  featured: Joi.boolean().optional().messages({
+    'boolean.base': 'Featured must be a boolean',
+  }),
+  search: Joi.string().trim().optional().messages({
+    'string.base': 'Search query must be a string',
+  }),
+}).unknown(true);
+
+// Project ID Param Schema
+const projectIdParamSchema = Joi.object({
+  id: Joi.string().uuid().required().messages({
+    'any.required': 'Project ID is required',
+  }),
+});
+
+// Management Endpoints Schemas
+const manageTechsSchema = Joi.object({
+  techIds: Joi.array().items(Joi.string().uuid()).min(1).required().messages({
+    'array.base': 'techIds must be an array',
+    'array.min': 'At least one tech ID is required',
+    'any.required': 'techIds is required',
+  }),
+});
+
+const manageContributorsSchema = Joi.object({
+  userIds: Joi.array().items(Joi.string().uuid()).min(1).required().messages({
+    'array.base': 'userIds must be an array',
+    'array.min': 'At least one user ID is required',
+    'any.required': 'userIds is required',
+  }),
+});
+
 module.exports = {
   signupSchema,
   signinSchema,
@@ -375,4 +474,10 @@ module.exports = {
   updateTechSchema,
   techSearchQuerySchema,
   batchCreateTechsSchema,
+  createProjectSchema,
+  updateProjectSchema,
+  projectQuerySchema,
+  projectIdParamSchema,
+  manageTechsSchema,
+  manageContributorsSchema,
 };

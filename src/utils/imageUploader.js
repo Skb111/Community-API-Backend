@@ -177,6 +177,34 @@ const uploadTechIcon = async ({
   });
 };
 
+/**
+ * Convenience function for uploading project cover images
+ * @param {Object} options - Upload options
+ * @param {Buffer} options.fileBuffer - File buffer
+ * @param {string} options.originalFileName - Original file name
+ * @param {string} options.mimeType - File MIME type
+ * @param {string} options.projectId - Project ID
+ * @param {string} [options.oldImageUrl] - URL of old cover image
+ * @returns {Promise<string>} Cover image URL
+ */
+const uploadProjectCoverImage = async ({
+  fileBuffer,
+  originalFileName,
+  mimeType = 'image/jpeg',
+  projectId,
+  oldImageUrl = null,
+}) => {
+  return uploadImage({
+    fileBuffer,
+    originalFileName,
+    mimeType,
+    imageType: 'project_cover',
+    entityId: projectId,
+    oldImageUrl,
+    imageTypeLabel: 'cover image',
+  });
+};
+
 module.exports = {
   uploadImage,
   uploadProfilePicture,
@@ -184,4 +212,5 @@ module.exports = {
   deleteImage,
   extractObjectKeyFromUrl,
   uploadTechIcon,
+  uploadProjectCoverImage,
 };
